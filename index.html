@@ -1,0 +1,2061 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUCAS_OS v3.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   RESET & TOKENS
+═══════════════════════════════════════════════════════════════ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#07070f; --bg2:#0d0d1a; --bg3:#111120;
+  --green:#39ff6e; --cyan:#00e5ff; --magenta:#ff2d9b;
+  --yellow:#ffe94d; --red:#ff4444; --white:#e8f4ff;
+  --dim:#1a1a2e; --dimmer:#10101e;
+  --gg: rgba(57,255,110,.25);  --cg: rgba(0,229,255,.25);
+  --mg: rgba(255,45,155,.25);  --yg: rgba(255,233,77,.25);
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--white);font-family:'Press Start 2P',monospace;overflow-x:hidden;cursor:none}
+/* Força o cursor customizado em 100% dos elementos interativos */
+*, *::before, *::after, a, button, input, select, textarea { cursor: none !important; }
+/* ═══ CRT ═══ */
+#crt{position:fixed;inset:0;z-index:9990;pointer-events:none;
+  background:repeating-linear-gradient(to bottom,transparent 0,transparent 2px,rgba(0,0,0,.11) 2px,rgba(0,0,0,.11) 4px)}
+#crt::after{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55) 100%)}
+@keyframes crtFlicker{0%,98%,100%{opacity:1}99%{opacity:.97}}
+#crt{animation:crtFlicker 10s infinite}
+
+/* ═══ SCROLL BAR (top) ═══ */
+#scroll-prog{position:fixed;top:0;left:0;height:3px;width:0%;z-index:9000;
+  background:linear-gradient(to right,var(--green),var(--cyan),var(--magenta));
+  box-shadow:0 0 8px var(--cyan);transition:width .06s}
+
+/* ═══ CURSOR ═══ */
+#cur{position:fixed;z-index:99999;pointer-events:none;width:20px;height:20px;
+  transform:translate(-2px,-2px);transition:transform .05s}
+#cur.hover-state{transform:translate(-2px,-2px) scale(1.4)}
+#cur.click-state{transform:translate(-2px,-2px) scale(.65)}
+#cur svg{width:100%;height:100%;image-rendering:pixelated;
+  filter:drop-shadow(0 0 4px var(--green));transition:filter .2s}
+#cur.hover-state svg{filter:drop-shadow(0 0 10px var(--cyan))}
+.px-trail{position:fixed;pointer-events:none;z-index:99990;
+  animation:trailFade .55s forwards}
+@keyframes trailFade{0%{opacity:.8;transform:scale(1) rotate(0)}100%{opacity:0;transform:scale(0) rotate(45deg)}}
+
+/* ═══ CLICK BURST ═══ */
+.burst{position:fixed;pointer-events:none;z-index:99000}
+.burst-px{position:absolute;width:4px;height:4px;
+  animation:burstFly .55s cubic-bezier(.23,1,.32,1) forwards}
+@keyframes burstFly{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--bx),var(--by)) scale(0);opacity:0}}
+
+/* ═══ BOOT ═══ */
+#boot{position:fixed;inset:0;z-index:9000;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  transition:opacity .8s,visibility .8s}
+#boot.gone{opacity:0;visibility:hidden;pointer-events:none}
+.boot-ascii{font-family:'VT323',monospace;font-size:clamp(8px,1.2vw,11px);
+  color:rgba(57,255,110,.28);text-align:center;line-height:1.3;white-space:pre;margin-bottom:4px}
+.boot-logo{font-size:clamp(14px,3vw,26px);color:var(--green);text-align:center;line-height:2;
+  text-shadow:0 0 20px var(--green),0 0 50px rgba(57,255,110,.3)}
+.boot-logo .v{font-size:8px;color:rgba(57,255,110,.4)}
+.boot-wrap{width:min(400px,80vw);border:2px solid var(--green);padding:3px;background:rgba(57,255,110,.03)}
+.boot-inner{height:12px;background:linear-gradient(to right,var(--green),var(--cyan));
+  width:0%;box-shadow:0 0 10px var(--green);transition:width .1s}
+.boot-msg{font-size:7px;color:rgba(57,255,110,.45);text-align:center;min-height:14px;letter-spacing:1px}
+.boot-skip{font-size:6px;color:rgba(57,255,110,.2);animation:blink .9s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* ═══ NAV ═══ */
+#nav{position:fixed;top:0;left:0;right:0;z-index:400;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px clamp(16px,4vw,64px);
+  background:linear-gradient(to bottom,rgba(7,7,15,.95),transparent);backdrop-filter:blur(2px)}
+.nav-logo{font-size:10px;color:var(--green);text-decoration:none;
+  text-shadow:0 0 10px var(--green);letter-spacing:2px;transition:text-shadow .2s}
+.nav-logo:hover{text-shadow:0 0 22px var(--green),0 0 44px var(--gg)}
+.nav-links{display:flex;gap:clamp(10px,2vw,24px)}
+.nav-links a{font-size:6px;color:rgba(232,244,255,.3);text-decoration:none;
+  letter-spacing:1px;padding:4px 6px;transition:color .2s;position:relative}
+.nav-links a::after{content:'';position:absolute;bottom:0;left:6px;right:6px;
+  height:1px;background:var(--cyan);transform:scaleX(0);transition:transform .25s}
+.nav-links a:hover{color:var(--cyan)}
+.nav-links a:hover::after{transform:scaleX(1)}
+#nav-time{font-size:6px;color:rgba(57,255,110,.4);letter-spacing:3px}
+
+/* ═══ PIXEL BOX HELPERS ═══ */
+.px-box  {border:3px solid var(--green);  box-shadow:3px 3px 0 var(--green),  0 0 18px var(--gg)}
+.px-box-c{border:3px solid var(--cyan);   box-shadow:3px 3px 0 var(--cyan),   0 0 18px var(--cg)}
+.px-box-m{border:3px solid var(--magenta);box-shadow:3px 3px 0 var(--magenta),0 0 18px var(--mg)}
+.px-box-y{border:3px solid var(--yellow); box-shadow:3px 3px 0 var(--yellow), 0 0 18px var(--yg)}
+
+/* ═══ REVEAL ═══ */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .7s,transform .7s cubic-bezier(.23,1,.32,1)}
+.rv.on{opacity:1;transform:none}
+.d1{transition-delay:.1s}.d2{transition-delay:.22s}.d3{transition-delay:.34s}.d4{transition-delay:.48s}
+
+/* ═══ HEADERS GLOBAIS GERAIS (Com mais respiro) ═══ */
+.sec-head { 
+  display: flex; 
+  align-items: center; 
+  flex-wrap: wrap; /* Evita que quebre feio no celular */
+  gap: 28px; /* Dobramos o espaço entre a Tag "TERMINAL" e o Título */
+  margin-bottom: 88px; /* Empurra o conteúdo (terminal, grid, etc) bem mais para baixo */
+}
+
+.sec-chip { 
+  font-size: 8px; 
+  letter-spacing: 2px; 
+  color: var(--bg2); 
+  background: var(--cyan); 
+  padding: 8px 16px; /* Deixamos a "etiqueta" mais gordinha e imponente */
+  box-shadow: 3px 3px 0 rgba(0,0,0,.5); 
+}
+
+.sec-ttl { 
+  font-size: clamp(14px, 2.5vw, 24px); /* Aumentamos levemente o peso do título */
+  color: var(--white); 
+  letter-spacing: 2px; 
+}
+
+/* ═══════════════════════════════════════
+   S1 — HERO
+═══════════════════════════════════════ */
+#s1{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;
+  align-items:center;gap:clamp(24px,4vw,60px);
+  padding:100px clamp(16px,5vw,80px) 60px;position:relative;overflow:hidden}
+#s1::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(57,255,110,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(57,255,110,.04) 1px,transparent 1px);
+  background-size:32px 32px;animation:gridDrift 30s linear infinite}
+#s1::after{content:'';position:absolute;left:0;right:0;height:3px;pointer-events:none;
+  background:linear-gradient(to right,transparent,rgba(57,255,110,.4),transparent);
+  animation:sweep 6s ease-in-out infinite}
+@keyframes gridDrift{to{background-position:32px 32px}}
+@keyframes sweep{0%{top:0;opacity:0}5%{opacity:1}95%{opacity:.4}100%{top:100%;opacity:0}}
+
+.s1-left{position:relative;z-index:2}
+.s1-eyebrow{font-size:7px;letter-spacing:3px;color:var(--cyan);margin-bottom:22px;
+  display:flex;align-items:center;gap:10px}
+.s1-eyebrow::before{content:'▶';color:var(--green);animation:blink .9s step-end infinite}
+.s1-title{font-size:clamp(16px,3.8vw,44px);line-height:1.6;margin-bottom:18px;text-shadow:3px 3px 0 rgba(0,0,0,.8)}
+.s1-title .hi{color:var(--green);text-shadow:0 0 14px var(--green),3px 3px 0 rgba(0,0,0,.8)}
+.s1-title .nm{color:var(--cyan);font-size:clamp(28px,6.5vw,72px);display:block;
+  text-shadow:0 0 24px var(--cyan),4px 4px 0 rgba(0,0,0,.8);line-height:1.2;margin:.2em 0;
+  cursor:none;transition:text-shadow .1s}
+.s1-title .nm:hover{animation:glitch .3s steps(2) both}
+@keyframes glitch{
+  0%{text-shadow:0 0 24px var(--cyan),-3px 0 var(--magenta),3px 0 var(--green),4px 4px 0 rgba(0,0,0,.8)}
+  50%{text-shadow:0 0 24px var(--cyan),3px 0 var(--magenta),-3px 0 var(--green),4px 4px 0 rgba(0,0,0,.8)}
+  100%{text-shadow:0 0 24px var(--cyan),4px 4px 0 rgba(0,0,0,.8)}}
+.s1-sub{font-family:'VT323',monospace;font-size:clamp(17px,2.3vw,24px);
+  color:rgba(232,244,255,.5);line-height:1.7;margin-bottom:32px;max-width:44ch}
+
+/* STAT BARS */
+.stats{background:var(--dimmer);padding:18px;max-width:380px}
+.stats-hdr{font-size:7px;color:var(--green);letter-spacing:2px;margin-bottom:14px;
+  padding-bottom:10px;border-bottom:1px solid rgba(57,255,110,.2);
+  display:flex;justify-content:space-between}
+.stat-row{display:grid;grid-template-columns:120px 1fr 28px;align-items:center;
+  gap:10px;margin-bottom:10px;font-size:6px}
+.stat-n{color:var(--yellow);letter-spacing:1px;white-space:nowrap}
+.stat-b{height:8px;background:var(--dim);border:1px solid rgba(255,255,255,.06);overflow:hidden}
+.stat-f{height:100%;width:0%;transition:width 1.6s cubic-bezier(.23,1,.32,1);position:relative}
+.stat-f::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(to right,transparent,rgba(255,255,255,.3),transparent);
+  background-size:60px 100%;animation:shimmer 2.5s ease-in-out infinite}
+@keyframes shimmer{0%{background-position:-60px 0}100%{background-position:200px 0}}
+.sf-g{background:linear-gradient(to right,var(--cyan),var(--green))}
+.sf-m{background:linear-gradient(to right,var(--magenta),var(--yellow))}
+.sf-c{background:linear-gradient(to right,var(--cyan),var(--magenta))}
+.stat-v{color:var(--white);font-size:7px;text-align:right}
+
+/* ═══════════════════════════════════════
+   S1 — ID BADGE (HERO RIGHT) - AMPLIFIED
+═══════════════════════════════════════ */
+.s1-right { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; perspective: 1200px; }
+
+/* ★ AUMENTAMOS A LARGURA PARA 340px E A ALTURA PARA 480px */
+.id-badge { width: 340px; height: 480px; background: var(--bg2); border: 2px solid var(--dim); border-radius: 12px; position: relative; overflow: hidden; transform-style: preserve-3d; transition: transform 0.15s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.3s; box-shadow: 0 20px 40px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(255,255,255,0.05); cursor: none; }
+.id-badge:hover { box-shadow: 0 30px 60px rgba(0,229,255,0.15), inset 0 0 0 2px var(--cyan); }
+
+.badge-glare { position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.15), transparent 60%); opacity: 0; pointer-events: none; z-index: 10; transition: opacity 0.3s; mix-blend-mode: overlay; }
+.id-badge:hover .badge-glare { opacity: 1; }
+
+.badge-header { padding: 18px 20px; border-bottom: 2px solid var(--dim); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); }
+.bh-logo { font-size: 10px; color: var(--green); letter-spacing: 2px; }
+.bh-lvl { font-size: 7px; background: var(--red); color: var(--white); padding: 5px 8px; border-radius: 3px; letter-spacing: 1px; animation: blink 2s step-end infinite; }
+
+/* ★ FOTO MAIOR PARA ACOMPANHAR A ESCALA */
+.badge-photo { width: 200px; height: 230px; margin: 32px auto 28px; border: 2px solid var(--cyan); position: relative; overflow: hidden; background: var(--bg); box-shadow: 0 0 16px rgba(0,229,255,0.25); }
+.badge-photo img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%) contrast(1.2) brightness(0.9); mix-blend-mode: luminosity; transition: filter 0.4s; }
+.id-badge:hover .badge-photo img { filter: grayscale(0%) contrast(1.1) brightness(1); mix-blend-mode: normal; }
+
+.photo-scanline { position: absolute; top: 0; left: 0; right: 0; height: 5px; background: rgba(0, 229, 255, 0.5); box-shadow: 0 0 12px var(--cyan); animation: scanline 3s linear infinite; opacity: 0.6; pointer-events: none; }
+@keyframes scanline { 0% { transform: translateY(-10px); } 100% { transform: translateY(240px); } }
+
+.badge-info { text-align: center; padding: 0 20px; margin-bottom: 24px; }
+/* ★ FONTES AMPLIADAS */
+.bi-name { font-size: 16px; color: var(--white); margin-bottom: 10px; letter-spacing: 2px; }
+.bi-role { font-family: 'VT323', monospace; font-size: 24px; color: var(--cyan); margin-bottom: 8px; }
+.bi-id { font-size: 8px; color: rgba(232,244,255,0.3); letter-spacing: 2px; }
+
+.badge-barcode { font-family: 'VT323', monospace; font-size: 36px; color: rgba(232,244,255,0.3); text-align: center; letter-spacing: -2px; transform: scaleY(1.5); }
+
+/* ═══════════════════════════════════════
+   FLOATING PARTICLES FIX (HERO)
+═══════════════════════════════════════ */
+.flt {
+  position: absolute;
+  bottom: -5%; /* Começa levemente abaixo da tela */
+  pointer-events: none;
+  z-index: 1; /* Fica atrás do texto e do crachá, mas acima do fundo */
+  opacity: 0;
+  animation-name: floatPixel;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  box-shadow: 0 0 10px currentColor; /* Adiciona um leve glow retro */
+}
+
+@keyframes floatPixel {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { transform: translate(var(--dx), -110vh); opacity: 0; }
+}
+
+/* ═══ MARQUEE ═══ */
+.mq{overflow:hidden;padding:14px 0;
+  border-top:2px solid rgba(57,255,110,.08);border-bottom:2px solid rgba(57,255,110,.08);
+  background:var(--dimmer);position:relative}
+.mq::before,.mq::after{content:'';position:absolute;top:0;bottom:0;width:80px;z-index:2;pointer-events:none}
+.mq::before{left:0;background:linear-gradient(to right,var(--dimmer),transparent)}
+.mq::after{right:0;background:linear-gradient(to left,var(--dimmer),transparent)}
+.mq-inner{display:flex;white-space:nowrap;animation:mqs 30s linear infinite}
+.mq.rev .mq-inner{animation-direction:reverse;animation-duration:24s}
+.mq-item{font-size:7px;letter-spacing:3px;text-transform:uppercase;
+  color:rgba(57,255,110,.18);padding:0 22px;display:flex;align-items:center;gap:14px;transition:color .3s}
+.mq-item:hover{color:rgba(57,255,110,.6)}
+.mq-dot{width:4px;height:4px;background:var(--green);flex-shrink:0;box-shadow:0 0 6px var(--green)}
+@keyframes mqs{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ═══════════════════════════════════════
+   S2 — BELIEFS (BENTO BOX)
+═══════════════════════════════════════ */
+#s2 { background:var(--bg2); padding:clamp(60px,10vw,110px) clamp(16px,5vw,80px); position:relative; overflow:hidden; }
+#s2::before { content:''; position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(90deg,transparent,transparent 63px,rgba(0,229,255,.015) 63px,rgba(0,229,255,.015) 64px); }
+
+.bento-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:900px; margin:0 auto; }
+
+.bento-card { background:var(--dimmer); border:2px solid var(--dim); padding:clamp(20px, 4vw, 32px); display:flex; flex-direction:column; position:relative; overflow:hidden; transition:border-color .3s, box-shadow .3s; }
+.bento-card:hover { border-color:var(--cyan); box-shadow:0 0 24px rgba(0,229,255,.1); }
+
+/* Card Principal ocupa as duas colunas */
+.bento-hero { grid-column:1 / -1; border-color:var(--cyan); box-shadow:4px 4px 0 rgba(0,229,255,.15); }
+
+.bc-top { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(232,244,255,.1); padding-bottom:12px; margin-bottom:20px; position:relative; z-index:2; }
+.bc-num { font-size:10px; color:var(--cyan); background:rgba(0,229,255,.1); padding:4px 8px; border:1px solid rgba(0,229,255,.3); }
+.bc-file { font-size:6px; color:rgba(232,244,255,.4); letter-spacing:2px; }
+
+.bc-content { position:relative; z-index:2; }
+.bc-ttl { font-family:'VT323',monospace; font-size:clamp(24px, 3.5vw, 36px); color:var(--white); line-height:1.2; margin-bottom:16px; }
+.bc-ttl .a { color:var(--green); }
+.bc-body { font-family:'VT323',monospace; font-size:clamp(16px, 2vw, 22px); color:rgba(232,244,255,.6); line-height:1.6; max-width:90%; }
+
+/* Ícone de Fundo Gigante */
+.bc-bg-ico { position:absolute; bottom:-10%; right:-5%; font-size:clamp(100px, 15vw, 160px) !important; color:var(--bg); opacity:0.6; z-index:1; transition:transform .5s cubic-bezier(.23,1,.32,1), color .5s; pointer-events:none; }
+.bento-card:hover .bc-bg-ico { transform:scale(1.1) rotate(-5deg); color:rgba(0,229,255,.05); }
+
+/* Responsivo para telemóvel: a grelha quebra para 1 coluna */
+@media(max-width: 768px) {
+  .bento-grid { grid-template-columns:1fr; }
+  .bento-hero { grid-column:auto; }
+  .bc-body { max-width:100%; }
+}
+
+/* ═══════════════════════════════════════
+   S3 — TERMINAL (ZSH UPGRADE)
+═══════════════════════════════════════ */
+#s3 { padding:clamp(60px,10vw,110px) clamp(16px,5vw,80px); background:var(--bg); }
+
+.term-wrapper { max-width: 900px; margin: 0 auto; }
+.term-window { background: rgba(5, 5, 8, 0.95); border: 2px solid var(--dim); box-shadow: 12px 12px 0 rgba(0,0,0,.6), 0 0 30px rgba(57,255,110,.05); display: flex; flex-direction: column; overflow: hidden; }
+
+.term-top { background: var(--dimmer); border-bottom: 2px solid var(--dim); padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; }
+.term-dots { display: flex; gap: 6px; }
+.term-title { font-family: 'Press Start 2P', monospace; font-size: 7px; color: rgba(232,244,255,.3); letter-spacing: 1px; }
+
+/* O Corpo: Letras grandes e com muito respiro */
+.term-body { padding: 32px; min-height: 350px; max-height: 500px; overflow-y: auto; font-family: 'VT323', monospace; font-size: clamp(20px, 2.5vw, 26px); color: var(--green); line-height: 1.6; text-shadow: 0 0 6px rgba(57,255,110,.4); scroll-behavior: smooth; }
+.term-body::-webkit-scrollbar { width: 8px; }
+.term-body::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 4px; }
+
+.t-sys { color: rgba(232,244,255,.5); text-shadow: none; }
+.t-res { color: var(--cyan); text-shadow: 0 0 6px rgba(0,229,255,.4); padding-bottom: 16px; }
+.t-err { color: var(--red); text-shadow: 0 0 6px rgba(255,68,68,.4); padding-bottom: 16px; }
+
+.t-line { display: flex; gap: 12px; align-items: flex-end; margin-top: 8px; }
+.t-pre { color: var(--yellow); text-shadow: 0 0 6px rgba(255,233,77,.4); white-space: nowrap; }
+
+/* O Input invisível */
+#t-in { flex: 1; background: transparent; border: none; color: var(--white); font-family: 'VT323', monospace; font-size: inherit; text-shadow: 0 0 6px rgba(232,244,255,.4); outline: none; }
+
+/* Barra de Ações Rápidas */
+.term-quick-cmds { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.t-cmd-btn { background: var(--dimmer); border: 1px solid var(--green); color: var(--green); padding: 10px 16px; font-family: 'Press Start 2P', monospace; font-size: 8px; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; transition: all .2s; box-shadow: 3px 3px 0 rgba(57,255,110,.15); }
+.t-cmd-btn:hover { background: var(--green); color: var(--bg); box-shadow: 0 0 16px rgba(57,255,110,.3); transform: translateY(-2px); }
+.t-cmd-btn .material-symbols-outlined { font-size: 14px; }
+.secret-cmd { border-color: var(--dim); color: var(--dim); box-shadow: none; }
+.secret-cmd:hover { background: var(--red); color: var(--white); border-color: var(--red); box-shadow: 0 0 16px var(--red); }
+
+/* ═══════════════════════════════════════
+   S4 — SNAKE GAME  (canvas is fixed 256×256, no CSS resize)
+═══════════════════════════════════════ */
+#s4{background:var(--bg2);padding:clamp(60px,10vw,110px) clamp(16px,5vw,80px)}
+.game-layout{display:grid;grid-template-columns:1fr auto;gap:clamp(20px,4vw,48px);align-items:start}
+.game-info h3{font-size:clamp(9px,1.6vw,14px);color:var(--white);margin-bottom:14px;line-height:1.6}
+.game-info p{font-family:'VT323',monospace;font-size:clamp(16px,2vw,20px);
+  color:rgba(232,244,255,.4);line-height:1.7;margin-bottom:20px}
+.game-controls{list-style:none;display:flex;flex-direction:column;gap:8px}
+.game-controls li{font-size:6px;color:rgba(232,244,255,.3);letter-spacing:1px;display:flex;align-items:center;gap:10px}
+.key-badge{background:var(--dim);border:1px solid rgba(232,244,255,.12);padding:3px 7px;font-size:6px;color:var(--white)}
+.game-container{display:flex;flex-direction:column;align-items:center;gap:12px}
+.game-hud{display:flex;gap:24px;font-size:8px}
+.game-hud span{color:var(--green);letter-spacing:1px}
+.game-hud .hs{color:var(--yellow)}
+
+/* Snake canvas — FIXED 256×256, no CSS width override */
+#snake-canvas{
+  background:#020209;border:3px solid var(--green);
+  image-rendering:pixelated;display:block;
+  box-shadow:0 0 24px var(--gg),4px 4px 0 var(--green);
+  transition:box-shadow .3s
+}
+#snake-canvas:hover{box-shadow:0 0 36px var(--gg),0 0 60px rgba(57,255,110,.08),4px 4px 0 var(--green)}
+
+.game-btn{font-family:'Press Start 2P',monospace;font-size:7px;cursor:none;
+  background:var(--bg);color:var(--green);border:3px solid var(--green);padding:10px 22px;
+  letter-spacing:1px;transition:all .15s;box-shadow:3px 3px 0 var(--green)}
+.game-btn:hover{background:var(--green);color:var(--bg);transform:translate(-2px,-2px);
+  box-shadow:5px 5px 0 rgba(57,255,110,.5)}
+
+/* Snake score pop */
+.score-pop{position:fixed;pointer-events:none;z-index:9998;
+  font-family:'Press Start 2P',monospace;font-size:10px;color:var(--yellow);
+  animation:scorePop .7s cubic-bezier(.23,1,.32,1) forwards;white-space:nowrap;
+  text-shadow:0 0 8px var(--yellow)}
+@keyframes scorePop{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-50px) scale(1.4)}}
+
+/* ═══════════════════════════════════════
+   S5 — MEMORY GAME
+═══════════════════════════════════════ */
+#s5{background:var(--bg);padding:clamp(60px,10vw,110px) clamp(16px,5vw,80px)}
+.memory-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:36px;flex-wrap:wrap;gap:12px}
+.mem-stats{display:flex;gap:24px}
+.mem-stat{font-size:7px;color:var(--cyan);letter-spacing:1px;display:flex;flex-direction:column;gap:5px}
+.mem-stat span{color:var(--white);font-size:13px}
+.memory-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:600px;margin:0 auto}
+.mem-card{aspect-ratio:1;cursor:none;position:relative;transform-style:preserve-3d;
+  transition:transform .4s cubic-bezier(.23,1,.32,1)}
+.mem-card:not(.flipped):not(.matched)::after{content:'';position:absolute;inset:-3px;
+  border:2px solid rgba(57,255,110,.3);animation:cardPulse 2s ease-in-out infinite;pointer-events:none}
+@keyframes cardPulse{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:.7;transform:scale(1.04)}}
+.mem-card:not(.flipped):not(.matched):hover{transform:translateY(-4px) scale(1.06)}
+.mem-card.flipped{transform:rotateY(180deg)}
+.mem-card.matched .mem-back{border-color:var(--green);box-shadow:0 0 14px var(--green),3px 3px 0 var(--green)}
+.mem-front,.mem-back{position:absolute;inset:0;backface-visibility:hidden;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--dim);background:var(--dimmer)}
+.mem-front{background:linear-gradient(135deg,#1a1a2e,#0d0d1a)}
+.mem-front::after{content:'?';font-size:clamp(14px,3vw,24px);color:rgba(57,255,110,.3)}
+.mem-back{transform:rotateY(180deg);border-color:var(--cyan);background:var(--bg2);
+  flex-direction:column;gap:6px;padding:8px}
+.mem-back .mem-icon{font-size:clamp(18px,4vw,32px)}
+.mem-back .mem-word{font-family:'VT323',monospace;font-size:clamp(10px,1.8vw,14px);color:var(--cyan);text-align:center;line-height:1.2}
+.mem-msg{text-align:center;font-size:8px;margin-top:24px;color:var(--yellow);min-height:16px;animation:blink .6s step-end infinite}
+
+/* ═══════════════════════════════════════
+   S6 — PROJECTS & MODAL
+═══════════════════════════════════════ */
+#s6 { background:var(--bg2); padding:clamp(60px,10vw,110px) clamp(16px,5vw,80px); position:relative; }
+#s6::before { content:''; position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(90deg,transparent,transparent 63px,rgba(0,229,255,.015) 63px,rgba(0,229,255,.015) 64px); }
+
+/* GRID E CARDS DE PROJETO */
+.proj-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:20px; margin-top:40px; }
+.proj-card { background:var(--dimmer); border:2px solid var(--dim); padding:24px; position:relative; cursor:none; transition:all .35s cubic-bezier(.23,1,.32,1); overflow:hidden; display:flex; flex-direction:column; gap:12px; }
+.proj-card::before { content:'[ INSPECIONAR ]'; position:absolute; inset:0; background:rgba(0,229,255,.95); color:var(--bg2); display:flex; align-items:center; justify-content:center; font-size:10px; opacity:0; transform:translateY(100%); transition:transform .35s cubic-bezier(.23,1,.32,1), opacity .35s; z-index:10; font-family:'Press Start 2P', monospace; }
+.proj-card:hover::before { opacity:1; transform:translateY(0); }
+.proj-card:hover { border-color:var(--cyan); box-shadow:6px 6px 0 rgba(0,229,255,.2); transform:translate(-3px, -3px); }
+.pc-ico { font-size:32px; margin-bottom:4px; }
+.pc-name { font-size:clamp(10px,1.5vw,14px); color:var(--white); letter-spacing:1px; position:relative; z-index:1; }
+.pc-tags { display:flex; gap:6px; flex-wrap:wrap; position:relative; z-index:1; }
+.pc-tag { font-size:5px; color:rgba(232,244,255,.5); background:var(--dim); padding:3px 6px; border:1px solid rgba(255,255,255,.05); }
+
+/* MODAL DE PROJETOS */
+#item-modal { position:fixed; inset:0; z-index:8000; background:rgba(0,0,0,.88); display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; visibility:hidden; transition:opacity .3s,visibility .3s; backdrop-filter:blur(4px); }
+#item-modal.open { opacity:1; visibility:visible; }
+.modal-box { background:var(--bg2); max-width:560px; width:100%; position:relative; animation:modalSlide .3s cubic-bezier(.23,1,.32,1) both; }
+@keyframes modalSlide { from{transform:translateY(20px) scale(.97)} to{transform:translateY(0) scale(1)} }
+.modal-title { background:var(--cyan); padding:10px 18px; font-size:8px; color:var(--bg2); display:flex; justify-content:space-between; align-items:center; }
+.modal-close { cursor:none; font-size:14px; color:var(--bg2); transition:color .2s,transform .2s; font-family:monospace; }
+.modal-close:hover { color:var(--magenta); transform:rotate(90deg); }
+.modal-body { padding:26px; }
+.modal-img-placeholder { width:100%; height:200px; background:var(--dim); border:2px dashed rgba(0,229,255,.2); margin-bottom:24px; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
+.modal-img-placeholder img { 
+  width:100%; height:100%; object-fit:cover; 
+  /* Efeito Radar/Blueprint Ciano */
+  filter: grayscale(100%) sepia(100%) hue-rotate(140deg) brightness(0.7) contrast(1.5); 
+  mix-blend-mode: hard-light; 
+  transition: all 0.5s cubic-bezier(.23,1,.32,1); 
+}
+.modal-img-placeholder:hover img { 
+  /* Revela a foto real no Hover */
+  filter: grayscale(0%) sepia(0%) hue-rotate(0deg) brightness(1) contrast(1); 
+  mix-blend-mode: normal; 
+}
+/* Ajuste global para a fonte dos ícones */
+i.ph { line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+.modal-img-placeholder::after { content:'SEM IMAGEM DISPONÍVEL'; font-size:7px; color:rgba(0,229,255,.2); position:absolute; font-family:'Press Start 2P', monospace; }
+.modal-head-row { display:flex; align-items:center; gap:16px; margin-bottom:16px; }
+.modal-head-row .modal-icon { font-size:32px; margin:0; }
+.modal-head-row .modal-name { margin:0; font-size:clamp(14px, 2vw, 18px); color:var(--cyan); letter-spacing:1px; }
+.modal-tags { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:18px; }
+.modal-tag { font-size:6px; color:var(--cyan); border:1px solid rgba(0,229,255,.3); padding:3px 9px; }
+.modal-desc { font-family:'VT323',monospace; font-size:clamp(16px,2vw,20px); color:rgba(232,244,255,.55); line-height:1.7; }
+/* ═══════════════════════════════════════
+   S7 — DIALOGUE COMM LINK
+═══════════════════════════════════════ */
+#s7 { background:var(--bg); padding:clamp(60px,10vw,110px) clamp(16px,5vw,80px); display:flex; flex-direction:column; align-items:center; position:relative; overflow:hidden; }
+#s7::before { content:''; position:absolute; inset:0; pointer-events:none; background-image:repeating-linear-gradient(0deg,transparent,transparent 31px,rgba(57,255,110,.02) 31px,rgba(57,255,110,.02) 32px),repeating-linear-gradient(90deg,transparent,transparent 31px,rgba(57,255,110,.02) 31px,rgba(57,255,110,.02) 32px); }
+
+.dlg-box { position:relative; z-index:2; background:rgba(5,5,8,0.9); max-width:850px; width:100%; border:2px solid var(--dim); padding:clamp(20px,3vw,36px); min-height:140px; box-shadow:8px 8px 0 rgba(0,0,0,0.5), 0 0 30px rgba(57,255,110,.05); margin-bottom:32px; display:flex; align-items:center; gap:24px; cursor:none; transition:border-color .2s; }
+.dlg-box:hover { border-color:var(--green); }
+.dlg-box::before { content:'[ LINK ESTABELECIDO ]'; position:absolute; top:-10px; left:24px; background:var(--bg); padding:0 8px; font-size:8px; color:var(--green); letter-spacing:2px; border:1px solid var(--dim); }
+
+/* Novo Avatar do Sistema */
+.dlg-avatar { width:60px; height:60px; background:var(--dimmer); border:1px solid var(--dim); display:flex; align-items:center; justify-content:center; color:var(--green); flex-shrink:0; box-shadow:inset 0 0 10px rgba(57,255,110,.1); }
+.dlg-avatar .material-symbols-outlined { font-size:32px; animation:pulseAudio 1s ease-in-out infinite alternate; }
+@keyframes pulseAudio { 0%{transform:scale(0.8); opacity:0.5;} 100%{transform:scale(1.1); opacity:1; text-shadow:0 0 12px var(--green);} }
+
+.dlg-text-wrap { flex:1; display:flex; align-items:center; }
+.dlg-text { font-family:'VT323',monospace; font-size:clamp(18px,2.5vw,26px); color:var(--white); line-height:1.6; }
+.dlg-cursor { display:inline-block; width:12px; height:4px; background:var(--green); vertical-align:bottom; margin-left:4px; animation:blink .7s step-end infinite; }
+
+.dlg-choices { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; z-index:2; position:relative; }
+.choice { background:var(--dimmer); border:1px solid var(--dim); color:var(--white); font-family:'Press Start 2P',monospace; font-size:7px; padding:12px 18px; cursor:none; transition:all .2s; letter-spacing:1px; }
+.choice::before { content:'$ '; color:var(--yellow); opacity:0.5; transition:opacity .2s; }
+.choice:hover, .choice.sel { background:var(--dim); border-color:var(--green); color:var(--green); transform:translateY(-2px); box-shadow:0 4px 12px rgba(57,255,110,.1); }
+.choice:hover::before, .choice.sel::before { opacity:1; color:var(--green); }
+
+/* ═══════════════════════════════════════
+   ★ S_SKILL — INVENTORY DRAG & DROP
+═══════════════════════════════════════ */
+#s_skill { background:var(--bg); padding:clamp(60px,10vw,110px) clamp(16px,5vw,80px); position:relative; overflow:hidden; }
+#s_skill::before { content:''; position:absolute; inset:0; pointer-events:none; background:radial-gradient(ellipse at 50% 100%,rgba(255,233,77,.04) 0%,transparent 60%); }
+.skill-inv-wrap { max-width:700px; margin:0 auto; position:relative; z-index:2; }
+.skill-inv-hint { font-size:7px; color:var(--yellow); letter-spacing:2px; text-align:center; margin-bottom:24px; animation:blink 1.5s step-end infinite; }
+
+/* Grid do Inventário */
+.skill-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:6px; background:var(--dimmer); padding:6px; border:2px solid var(--dim); box-shadow:0 0 20px rgba(0,0,0,.5); }
+
+/* O Slot Vazio */
+.skill-slot { aspect-ratio:1; background:var(--bg); border:1px dashed rgba(232,244,255,.1); position:relative; transition:background .2s, border-color .2s; display:flex; align-items:center; justify-content:center; }
+.skill-slot.drag-over { background:rgba(0,229,255,.1); border-color:var(--cyan); box-shadow:inset 0 0 14px var(--cg); }
+
+/* A Gema de Habilidade (Item Arrastável) */
+.skill-gem { width:100%; height:100%; background:var(--bg2); border:2px solid var(--dim); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:grab; transition:all .2s; position:relative; }
+.skill-gem:hover { border-color:var(--cyan); transform:translate(-2px, -2px); box-shadow:4px 4px 0 rgba(0,229,255,.2); z-index:5; }
+.skill-gem:active { cursor:grabbing; }
+.skill-gem.dragging { opacity:0.4; transform:scale(0.9); border-style:dashed; border-color:var(--yellow); }
+
+.sg-ico { font-size:28px; color:var(--cyan); }
+.sg-name { font-size:7px; color:var(--white); letter-spacing:1px; text-align:center; padding:0 4px; line-height:1.2; }
+.sg-lv { position:absolute; top:4px; right:4px; font-size:5px; color:var(--yellow); }
+
+/* Variantes de Cor por Categoria */
+.skill-gem[data-cat="DADOS"] .sg-ico { color:var(--green); }
+.skill-gem[data-cat="INFRA"] .sg-ico { color:var(--magenta); }
+.skill-gem[data-cat="GESTÃO"] .sg-ico { color:var(--yellow); }
+
+/* ═══════════════════════════════════════
+   ★ NEW — S_TIMELINE — CAREER PATH
+═══════════════════════════════════════ */
+#s_timeline{background:var(--bg2);padding:clamp(60px,10vw,110px) clamp(16px,5vw,80px);position:relative;overflow:hidden}
+.timeline{position:relative;max-width:800px;margin:0 auto}
+
+/* Vertical line - Fio Base (Apagado) */
+.timeline::before { content:''; position:absolute; left:24px; top:0; bottom:0; width:2px; background:var(--dim); }
+/* Fio Energizado (Ciano/Magenta) acionado pelo JS via CSS Var */
+.timeline::after { content:''; position:absolute; left:24px; top:0; bottom:0; width:2px; background:linear-gradient(to bottom, var(--cyan), var(--magenta)); transform-origin:top; transform:scaleY(var(--tl-prog, 0)); transition:transform 0.1s linear; box-shadow:0 0 12px var(--cyan); z-index:1; }
+
+.tl-item { display:grid; grid-template-columns:58px 1fr; gap:20px; margin-bottom:36px; position:relative; }
+
+/* O Nó (Dot) apagado */
+.tl-dot { width:50px; height:50px; background:var(--dimmer); border:2px solid var(--dim); display:flex; align-items:center; justify-content:center; color:rgba(232,244,255,.3); position:relative; z-index:2; flex-shrink:0; transition:all 0.4s; }
+/* O Nó Energizado (quando a linha passa por ele) */
+.tl-item.energized .tl-dot { border-color:var(--cyan); color:var(--cyan); box-shadow:0 0 16px var(--cg), inset 0 0 10px rgba(0,229,255,.1); transform:scale(1.1); }
+.tl-item.energized .tl-content::before { opacity: 1; background:var(--cyan); box-shadow:0 0 8px var(--cyan); }
+
+.tl-content { background:var(--dimmer); border:2px solid var(--dim); padding:18px; position:relative; transition:border-color .3s, transform .2s, box-shadow .2s; cursor:none; }
+.tl-content::before { content:''; position:absolute; left:-12px; top:24px; width:12px; height:2px; background:var(--dim); transition:all 0.4s; z-index:0; }
+.tl-item:hover .tl-content { border-color:var(--cyan); transform:translateX(4px); box-shadow:4px 4px 0 rgba(0,229,255,.15); }
+.tl-year { font-size:6px; color:var(--cyan); letter-spacing:2px; margin-bottom:8px; opacity:.6; }
+.tl-role { font-size:clamp(9px,1.5vw,13px); color:var(--white); margin-bottom:8px; line-height:1.5; }
+.tl-org { font-size:6px; color:var(--yellow); letter-spacing:1px; margin-bottom:10px; }
+.tl-desc { font-family:'VT323',monospace; font-size:clamp(15px,1.8vw,18px); color:rgba(232,244,255,.5); line-height:1.65; min-height:48px; } /* Min-height previne que o card pule durante o glitch */
+.tl-tags { display:flex; gap:5px; flex-wrap:wrap; margin-top:10px; }
+.tl-tag { font-size:5px; color:rgba(0,229,255,.6); border:1px solid rgba(0,229,255,.2); padding:2px 6px; }
+
+/* ═══════════════════════════════════════
+   S8 — BOSS / CONTACT
+═══════════════════════════════════════ */
+#s8{min-height:100vh;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:clamp(60px,10vw,110px) clamp(16px,5vw,80px);position:relative;overflow:hidden}
+#s8::before{content:'CONTACT';position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);font-size:clamp(60px,18vw,200px);
+  color:rgba(255,45,155,.025);pointer-events:none;user-select:none;white-space:nowrap}
+#s8::after{content:'';position:absolute;bottom:-10%;left:50%;transform:translateX(-50%);
+  width:80%;height:50%;
+  background:radial-gradient(ellipse,rgba(255,45,155,.08) 0%,transparent 70%);
+  animation:bossGlow 3.5s ease-in-out infinite alternate;pointer-events:none}
+@keyframes bossGlow{0%{opacity:.5;transform:translateX(-50%) scaleY(1)}100%{opacity:1;transform:translateX(-50%) scaleY(1.4)}}
+.boss-banner{position:relative;z-index:2;text-align:center;margin-bottom:44px}
+.boss-warn{font-size:8px;color:var(--magenta);letter-spacing:4px;margin-bottom:16px;
+  animation:blink .6s step-end infinite;text-shadow:0 0 12px var(--magenta)}
+.boss-ttl{font-size:clamp(14px,3.5vw,36px);color:var(--white);line-height:1.45;
+  text-shadow:0 0 24px rgba(255,45,155,.3)}
+.boss-ttl em{font-style:normal;color:var(--magenta);text-shadow:0 0 14px var(--magenta)}
+.boss-sub{font-family:'VT323',monospace;font-size:clamp(17px,2.2vw,23px);
+  color:rgba(232,244,255,.38);margin-top:14px;max-width:44ch;margin-inline:auto}
+.contact-grid{position:relative;z-index:2;display:grid;grid-template-columns:repeat(2,1fr);
+  gap:3px;width:min(540px,100%);background:var(--magenta);padding:3px;
+  box-shadow:5px 5px 0 var(--magenta),0 0 28px var(--mg)}
+.cg-btn{background:var(--bg);padding:20px 24px;text-decoration:none;color:var(--white);
+  display:flex;justify-content:space-between;align-items:center;
+  position:relative;overflow:hidden;transition:color .2s}
+.cg-btn::before{content:'';position:absolute;inset:0;background:var(--magenta);
+  clip-path:polygon(0 100%,100% 100%,100% 100%,0 100%);
+  transition:clip-path .4s cubic-bezier(.23,1,.32,1)}
+.cg-btn:hover::before{clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}
+.cg-btn:hover{color:var(--bg)}
+.cg-btn>*{position:relative;z-index:1}
+.cg-name{font-size:clamp(9px,1.6vw,13px);letter-spacing:1px;transition:letter-spacing .25s}
+.cg-btn:hover .cg-name{letter-spacing:2px}
+.cg-arr{font-size:16px;opacity:.3;transform:rotate(-45deg);transition:all .3s}
+.cg-btn:hover .cg-arr{opacity:1;transform:rotate(0)}
+/* ★ NEW: BOSS FIGHT INTERFACE & ANIMATIONS */
+.boss-hp-wrap { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:28px; }
+.hp-label { font-size:10px; color:var(--magenta); text-shadow:2px 2px 0 rgba(0,0,0,.8); animation:blink 1s step-end infinite; }
+.hp-bar-bg { width:min(320px, 60vw); height:16px; background:var(--dimmer); border:2px solid var(--dim); position:relative; box-shadow:0 0 14px rgba(255,45,155,.25); }
+.hp-bar-fill { height:100%; width:100%; background:linear-gradient(to right, #ff2d9b, #ff4444); transition:width 0.1s linear; }
+.hp-val { font-size:8px; color:var(--white); width:64px; text-align:left; letter-spacing:1px; }
+
+/* Botão de Ataque */
+.boss-atk-btn { border-color:var(--magenta); color:var(--magenta); box-shadow:4px 4px 0 var(--magenta); transition:all .1s; }
+.boss-atk-btn:hover { background:var(--magenta); color:var(--bg); box-shadow:6px 6px 0 rgba(255,45,155,.5); transform:translate(-2px, -2px) scale(1.05); }
+.boss-atk-btn:active { transform:translate(2px, 2px) scale(0.95); box-shadow:0 0 0 transparent; }
+
+/* Shake Effect */
+@keyframes bossShake {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-4px, 4px); }
+  50% { transform: translate(4px, -2px); }
+  75% { transform: translate(-4px, -4px); }
+}
+.boss-shake { animation: bossShake 0.25s cubic-bezier(.36,.07,.19,.97) both; }
+
+/* Números de Dano Pulando */
+.dmg-pop {
+  position:fixed; z-index:99999; pointer-events:none;
+  font-family:'Press Start 2P', monospace; font-size:clamp(18px, 4vw, 32px); color:var(--yellow);
+  text-shadow:3px 3px 0 var(--red), 0 0 12px var(--yellow);
+  animation:dmgFly 0.7s cubic-bezier(.23,1,.32,1) forwards;
+}
+@keyframes dmgFly {
+  0% { opacity:1; transform:translateY(0) scale(0.5) rotate(calc(var(--rot) * 1deg)); }
+  20% { transform:translateY(-50px) scale(1.4) rotate(calc(var(--rot) * 1.5deg)); }
+  100% { opacity:0; transform:translateY(-120px) scale(0.8) rotate(calc(var(--rot) * 2.5deg)); }
+}
+
+/* Estado de Vitória */
+.boss-dead .boss-ttl { color:var(--green); text-shadow:0 0 24px var(--green); }
+.boss-dead .boss-ttl em { color:var(--white); text-shadow:0 0 14px var(--white); }
+.boss-dead .boss-warn { color:var(--green); animation:none; text-shadow:0 0 12px var(--green); }
+.boss-dead .boss-atk-btn { display: none; }
+.boss-dead::after { display:none; }
+/* Muda o grid de contato para verde para puxar a conversão */
+.boss-dead #contact-grid { background: var(--green); box-shadow:5px 5px 0 var(--green), 0 0 28px rgba(57,255,110,.3); }
+.boss-dead .cg-btn::before { background: var(--green); }
+
+/* ═══════════════════════════════════════
+   FOOTER — EXP bar lives here now
+═══════════════════════════════════════ */
+footer{background:var(--bg2);border-top:2px solid rgba(57,255,110,.1);position:relative}
+.footer-exp{height:4px;width:0%;background:linear-gradient(to right,var(--green),var(--cyan));
+  transition:width .06s;box-shadow:0 0 6px var(--green)}
+.footer-inner{padding:16px clamp(16px,5vw,80px);
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+footer span{font-size:6px;color:rgba(232,244,255,.15);letter-spacing:2px}
+.f-v{color:var(--green);opacity:.35}
+.f-exp-wrap{display:flex;align-items:center;gap:10px}
+.f-exp-lbl{font-size:6px;color:rgba(57,255,110,.5);letter-spacing:2px}
+.f-exp-track{width:80px;height:7px;background:var(--dim);border:1px solid rgba(57,255,110,.25);overflow:hidden}
+.f-exp-fill{height:100%;width:0%;background:linear-gradient(to right,var(--green),var(--cyan));
+  transition:width .06s;box-shadow:0 0 4px var(--green)}
+.f-exp-pct{font-size:6px;color:var(--cyan);min-width:28px;text-align:right}
+.f-live{display:flex;align-items:center;gap:8px;font-size:6px;color:rgba(255,45,155,.4);letter-spacing:2px}
+.f-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--magenta);
+  box-shadow:0 0 8px var(--magenta);animation:blink 2.2s infinite}
+
+/* ═══ LEVEL-UP TOAST ═══ */
+#lvl-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:var(--yellow);color:var(--bg);font-size:7px;padding:6px 16px;
+  letter-spacing:2px;z-index:600;opacity:0;pointer-events:none;
+  transition:opacity .35s,transform .35s;box-shadow:3px 3px 0 rgba(255,233,77,.4)}
+#lvl-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ═══ EASTER EGG ═══ */
+#egg{position:fixed;inset:0;z-index:9999;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  opacity:0;visibility:hidden;transition:opacity .5s,visibility .5s;gap:18px}
+#egg.show{opacity:1;visibility:visible}
+#egg .egg-ttl{font-size:clamp(12px,2.5vw,22px);color:var(--yellow);text-align:center;line-height:1.6}
+#egg .egg-sub{font-family:'VT323',monospace;font-size:clamp(18px,2vw,24px);
+  color:rgba(255,233,77,.5);text-align:center;max-width:44ch;line-height:1.6}
+#egg .egg-close{font-size:7px;color:rgba(232,244,255,.3);cursor:none;letter-spacing:2px;
+  border:2px solid rgba(232,244,255,.18);padding:9px 16px;background:none;
+  transition:all .2s;margin-top:10px;font-family:'Press Start 2P',monospace}
+#egg .egg-close:hover{color:var(--white);border-color:var(--white)}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:768px){
+  #s1{grid-template-columns:1fr}
+  .s1-right{display:none}
+  .game-layout{grid-template-columns:1fr}
+  .contact-grid{grid-template-columns:1fr}
+  .ditem{grid-template-columns:44px 1fr}
+  .di-lv{display:none}
+  .nav-links{display:none}
+  .stat-row{grid-template-columns:90px 1fr 24px}
+  .tl-item{grid-template-columns:50px 1fr}
+}
+
+/* Ajuste de escala para os ícones do Google */
+.material-symbols-outlined { font-size: inherit; vertical-align: middle; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+
+/* ═══════════════════════════════════════
+   TRIBUTO ETERNO (HERO BOTTOM)
+═══════════════════════════════════════ */
+.hero-tribute {
+  position: absolute;
+  bottom: 24px; /* Fixado lá embaixo na tela inicial */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  opacity: 0.15; /* Muito sutil para não gritar na tela, mas visível */
+  z-index: 10;
+  pointer-events: none; /* O mouse passa direto por ele */
+}
+
+/* O Ícone do Coração Laranja (SVG) */
+.ht-heart-icon {
+  width: clamp(24px, 4vw, 36px);
+  height: clamp(24px, 4vw, 36px);
+  color: #ff8800; /* A cor injeta-se diretamente no fill="currentColor" do SVG */
+  filter: drop-shadow(0 0 8px #ff8800) drop-shadow(0 0 20px rgba(255, 136, 0, 0.5));
+  animation: heartbeatSvg 2.5s infinite;
+  display: block;
+}
+
+/* O Nome Dela */
+.ht-name {
+  font-family: 'VT323', monospace;
+  font-size: clamp(16px, 2vw, 24px);
+  color: rgba(255, 136, 0, 0.5);
+  letter-spacing: 6px;
+  text-transform: uppercase;
+}
+
+/* Física do Batimento Cardíaco Otimizada para SVG */
+@keyframes heartbeatSvg {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px #ff8800) drop-shadow(0 0 10px rgba(255, 136, 0, 0.2)); }
+  15% { transform: scale(1.15); filter: drop-shadow(0 0 12px #ff8800) drop-shadow(0 0 25px rgba(255, 136, 0, 0.6)); }
+  30% { transform: scale(1); filter: drop-shadow(0 0 8px #ff8800) drop-shadow(0 0 10px rgba(255, 136, 0, 0.2)); }
+  45% { transform: scale(1.15); filter: drop-shadow(0 0 12px #ff8800) drop-shadow(0 0 25px rgba(255, 136, 0, 0.6)); }
+  60% { transform: scale(1); filter: drop-shadow(0 0 8px #ff8800) drop-shadow(0 0 10px rgba(255, 136, 0, 0.2)); }
+}
+
+</style>
+</head>
+<body>
+
+<!-- ═══ CRT OVERLAY ═══ -->
+<div id="crt" aria-hidden="true"></div>
+
+<!-- ═══ SCROLL PROGRESS BAR ═══ -->
+<div id="scroll-prog" aria-hidden="true"></div>
+
+<!-- ═══ CUSTOM CURSOR ═══ -->
+<div id="cur" aria-hidden="true">
+  <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated">
+    <rect x="0" y="0" width="4" height="4" fill="#39ff6e"/>
+    <rect x="0" y="4" width="4" height="4" fill="#39ff6e"/>
+    <rect x="4" y="4" width="4" height="4" fill="#39ff6e"/>
+    <rect x="0" y="8" width="4" height="4" fill="#39ff6e"/>
+    <rect x="4" y="8" width="4" height="4" fill="#39ff6e"/>
+    <rect x="8" y="8" width="4" height="4" fill="#39ff6e"/>
+    <rect x="4" y="12" width="4" height="4" fill="#39ff6e"/>
+    <rect x="8" y="12" width="4" height="4" fill="#39ff6e"/>
+    <rect x="12" y="12" width="4" height="4" fill="#39ff6e"/>
+  </svg>
+</div>
+
+<!-- ═══ LEVEL-UP TOAST ═══ -->
+<div id="lvl-toast" aria-live="assertive">★ AREA DESBLOQUEADA ★</div>
+
+<!-- ═══ BOOT SCREEN ═══ -->
+<div id="boot">
+  <pre class="boot-ascii">
+ ██╗     ██╗   ██╗ ██████╗ █████╗ ███████╗
+ ██║     ██║   ██║██╔════╝██╔══██╗██╔════╝
+ ██║     ██║   ██║██║     ███████║███████╗
+ ██║     ██║   ██║██║     ██╔══██║╚════██║
+ ███████╗╚██████╔╝╚██████╗██║  ██║███████║
+ ╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝</pre>
+  <p class="boot-logo">LUCAS_OS<span class="v">.EXE v3.0</span><br>
+    <span style="font-size:7px;color:rgba(57,255,110,.3)">SYSTEM BOOT</span></p>
+  <div class="boot-wrap"><div class="boot-inner" id="bfill"></div></div>
+  <p class="boot-msg" id="bmsg">INICIANDO...</p>
+  <p class="boot-skip">[PRESSIONE QUALQUER TECLA PARA PULAR]</p>
+  <div class="hero-tribute">
+    <svg class="ht-heart-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+    </svg>
+    <span class="ht-name">POR VOCÊ, PITA</span>
+  </div>
+</div>
+
+<!-- ═══ EASTER EGG ═══ -->
+<div id="egg">
+  <p class="egg-ttl">🎉 EASTER EGG ENCONTRADO! 🎉</p>
+  <p class="egg-sub">Você descobriu o segredo. A verdade é: construo interfaces absurdamente simples porque sei o quanto o código por trás delas é caótico.</p>
+  <div style="font-size:36px;animation:idle 1s ease-in-out infinite">🤖</div>
+  <button class="egg-close" onclick="document.getElementById('egg').classList.remove('show')">[ FECHAR ]</button>
+</div>
+
+<!-- ═══ PROJECT MODAL ═══ -->
+<div id="item-modal">
+  <div class="modal-box px-box-c">
+    <div class="modal-title">
+      <span id="m-title">DETALHES DO PROJETO</span>
+      <span class="modal-close" onclick="closeModal()">✕</span>
+    </div>
+    <div class="modal-body">
+      <div class="modal-img-placeholder" id="m-img-wrap"></div>
+      <div class="modal-head-row">
+        <span class="modal-icon" id="m-icon"></span>
+        <p class="modal-name" id="m-name"></p>
+      </div>
+      <div class="modal-tags" id="m-tags"></div>
+      <p class="modal-desc" id="m-desc"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ NAV ═══ -->
+<nav id="nav">
+  <a href="#s1" class="nav-logo">LUCAS.EXE</a>
+  <div class="nav-links">
+    <a href="#s2">FILOSOFIA</a>
+    <a href="#s3">TERMINAL</a>
+    <a href="#s4">SNAKE</a>
+    <a href="#s5">MEMORY</a>
+    <a href="#s_skill">SKILLS</a>
+    <a href="#s_timeline">TRAJETÓRIA</a>
+    <a href="#s6">PROJETOS</a>
+    <a href="#s8">CONTATO</a>
+  </div>
+  <span id="nav-time"></span>
+</nav>
+
+<!-- ═══════════════════════════════════════
+     S1 — HERO
+═══════════════════════════════════════ -->
+<section id="s1">
+  <div class="s1-left">
+    <p class="s1-eyebrow">PLAYER 01 — SELECT</p>
+    <h1 class="s1-title">
+      <span class="hi">OLÁ.</span><br>EU SOU
+      <span class="nm">LUCAS</span>
+    </h1>
+    <p class="s1-sub">Software Architect &amp; Tech Lead. Estudante de Sistemas de Informação. Construo sistemas que escalam negócios.</p>
+    <div class="stats px-box">
+      <div class="stats-hdr"><span>ATRIBUTOS BASE</span><span style="color:var(--yellow)">LV∞</span></div>
+      <div class="stat-row"><span class="stat-n">ARQUITETURA</span><div class="stat-b"><div class="stat-f sf-g" data-v="98"></div></div><span class="stat-v">98</span></div>
+      <div class="stat-row"><span class="stat-n">POSTGRESQL</span><div class="stat-b"><div class="stat-f sf-g" data-v="95"></div></div><span class="stat-v">95</span></div>
+      <div class="stat-row"><span class="stat-n">LIDERANÇA</span><div class="stat-b"><div class="stat-f sf-m" data-v="92"></div></div><span class="stat-v">92</span></div>
+      <div class="stat-row"><span class="stat-n">UI/UX</span><div class="stat-b"><div class="stat-f sf-c" data-v="90"></div></div><span class="stat-v">90</span></div>
+      <div class="stat-row"><span class="stat-n">POWER BI</span><div class="stat-b"><div class="stat-f sf-m" data-v="88"></div></div><span class="stat-v">88</span></div>
+    </div>
+  </div>
+  <div class="s1-right">
+    <div class="id-badge" id="id-badge">
+      <div class="badge-glare" id="badge-glare"></div>
+      <div class="badge-header">
+        <span class="bh-logo">ONLIFE_SYS</span>
+        <span class="bh-lvl">NÍVEL ROOT</span>
+      </div>
+      <div class="badge-photo">
+        <img src="assets/img/eu.jpg" alt="Lucas Rodrigues" id="my-photo">
+        <div class="photo-scanline"></div>
+      </div>
+      <div class="badge-info">
+        <p class="bi-name">LUCAS RODRIGUES</p>
+        <p class="bi-role">SOFTWARE ARCHITECT</p>
+        <p class="bi-id">ID: 0x8F92A_ROOT</p>
+      </div>
+      <div class="badge-barcode">
+        || ||| | ||| | | || ||| || |
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE 1 -->
+<div class="mq" aria-hidden="true">
+  <div class="mq-inner">
+    <span class="mq-item">FULL-STACK DEV<span class="mq-dot"></span></span>
+    <span class="mq-item">POSTGRESQL<span class="mq-dot"></span></span>
+    <span class="mq-item">SISTEMAS DE INFORMAÇÃO<span class="mq-dot"></span></span>
+    <span class="mq-item">KANBAN &amp; MOSCOW<span class="mq-dot"></span></span>
+    <span class="mq-item">GIS / SIG<span class="mq-dot"></span></span>
+    <span class="mq-item">POWER BI<span class="mq-dot"></span></span>
+    <span class="mq-item">FULL-STACK DEV<span class="mq-dot"></span></span>
+    <span class="mq-item">POSTGRESQL<span class="mq-dot"></span></span>
+    <span class="mq-item">SISTEMAS DE INFORMAÇÃO<span class="mq-dot"></span></span>
+    <span class="mq-item">KANBAN &amp; MOSCOW<span class="mq-dot"></span></span>
+    <span class="mq-item">GIS / SIG<span class="mq-dot"></span></span>
+    <span class="mq-item">POWER BI<span class="mq-dot"></span></span>
+  </div>
+</div>
+
+<!-- ═══ S2 — BELIEFS ═══ -->
+<section id="s2">
+<div class="sec-head rv">
+    <span class="sec-chip" style="background:var(--cyan);color:var(--bg2)">FILOSOFIA</span>
+    <h2 class="sec-ttl">// MINHAS CRENÇAS</h2>
+  </div>
+
+  <div class="bento-grid rv d1">
+    
+    <div class="bento-card bento-hero">
+      <div class="bc-top">
+        <span class="bc-num">01</span>
+        <span class="bc-file">visao_produto.sys</span>
+      </div>
+      <div class="bc-content">
+        <h3 class="bc-ttl">CÓDIGO NÃO <span class="a">BASTA</span></h3>
+        <p class="bc-body">Se não resolve um problema real de negócio, é apenas vaidade técnica. A melhor arquitetura é aquela perfeitamente alinhada à sobrevivência e escala do produto.</p>
+      </div>
+      <span class="material-symbols-outlined bc-bg-ico">architecture</span>
+    </div>
+
+    <div class="bento-card">
+      <div class="bc-top">
+        <span class="bc-num">02</span>
+        <span class="bc-file">engenharia.db</span>
+      </div>
+      <div class="bc-content">
+        <h3 class="bc-ttl">DADOS SÃO <span class="a">LEI</span></h3>
+        <p class="bc-body">A interface mente, o banco de dados não. Uma modelagem relacional sólida no PostgreSQL previne o caos completo no frontend.</p>
+      </div>
+      <span class="material-symbols-outlined bc-bg-ico">database</span>
+    </div>
+
+    <div class="bento-card">
+      <div class="bc-top">
+        <span class="bc-num">03</span>
+        <span class="bc-file">interface.ui</span>
+      </div>
+      <div class="bc-content">
+        <h3 class="bc-ttl">SIMPLICIDADE <span class="a">EXTREMA</span></h3>
+        <p class="bc-body">Sistemas altamente complexos no backend devem ter interfaces absurdamente simples para o utilizador. O caos fica nos bastidores.</p>
+      </div>
+      <span class="material-symbols-outlined bc-bg-ico">center_focus_strong</span>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══ S3 — TERMINAL ═══ -->
+<section id="s3">
+<div class="sec-head rv">
+    <span class="sec-chip" style="background:var(--green);color:var(--bg2)">TERMINAL</span>
+    <h2 class="sec-ttl">// HACK MY MIND</h2>
+  </div>
+
+  <div class="term-wrapper rv d1">
+    <div class="term-window">
+      <div class="term-top">
+        <div class="term-dots"><span class="d-mac r"></span><span class="d-mac y"></span><span class="d-mac g"></span></div>
+        <span class="term-title">root@lucas_os:~ — bash — 80x24</span>
+      </div>
+      
+      <div class="term-body" id="term-body" onclick="document.getElementById('t-in').focus()">
+        <div id="t-out">
+          <div class="t-sys">LUCAS_OS v3.0 [Kernel 10.0.19045]</div>
+          <div class="t-sys">(c) Lucas Rodrigues. Todos os direitos reservados.</div>
+          <br>
+          <div>Digite <span style="color:var(--yellow)">help</span> para ver a lista de comandos ou use os atalhos.</div>
+        </div>
+        <div class="t-line">
+          <span class="t-pre">root@lucas_os:~$</span>
+          <input type="text" id="t-in" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+    </div>
+
+    <div class="term-quick-cmds">
+      <button class="t-cmd-btn" onclick="runCmd('whoami')"><span class="material-symbols-outlined">person</span> whoami</button>
+      <button class="t-cmd-btn" onclick="runCmd('stack')"><span class="material-symbols-outlined">memory</span> stack</button>
+      <button class="t-cmd-btn" onclick="runCmd('clear')"><span class="material-symbols-outlined">delete</span> clear</button>
+      <button class="t-cmd-btn secret-cmd" onclick="runCmd('sudo cast hellfire')"><span class="material-symbols-outlined">local_fire_department</span> ???</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ S4 — SNAKE GAME ═══ -->
+<section id="s4">
+  <div class="sec-head rv"><span class="sec-chip" style="background:var(--yellow);color:var(--bg2)">MINI GAME</span><h2 class="sec-ttl">// SNAKE: COLETE IDEIAS</h2></div>
+  <div class="game-layout rv d1">
+    <div class="game-info">
+      <h3>CADA FRUTA É UMA IDEIA.</h3>
+      <p>Colete o máximo de ideias sem bater em si mesmo. Metáfora de vida ou jogo? Você decide.</p>
+      <ul class="game-controls">
+        <li><span class="key-badge">W A S D</span> ou <span class="key-badge">↑↓←→</span> mover</li>
+        <li><span class="key-badge">ENTER</span> iniciar / pausar</li>
+        <li><span class="key-badge">R</span> reiniciar</li>
+      </ul>
+    </div>
+    <div class="game-container">
+      <div class="game-hud">
+        <span>SCORE: <span id="score">0</span></span>
+        <span class="hs">BEST: <span id="hi-score">0</span></span>
+        <span id="g-status" style="color:var(--yellow)">PRESSIONE ENTER</span>
+      </div>
+      <canvas id="snake-canvas" width="256" height="256"></canvas>
+      <button class="game-btn" id="snake-btn" onclick="snakeAction()">[ INICIAR ]</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ S5 — MEMORY GAME ═══ -->
+<section id="s5">
+  <div class="memory-header rv">
+    <div class="sec-head"><span class="sec-chip" style="background:var(--magenta)">MEMORY</span><h2 class="sec-ttl">// ENCONTRE OS PARES</h2></div>
+    <div class="mem-stats">
+      <div class="mem-stat">MOVES <span id="mem-moves">0</span></div>
+      <div class="mem-stat">PARES <span id="mem-pairs">0/8</span></div>
+    </div>
+  </div>
+  <div class="memory-grid rv d1" id="mem-grid"></div>
+  <p class="mem-msg" id="mem-msg"></p>
+  <div style="text-align:center;margin-top:24px">
+    <button class="game-btn" onclick="initMemory()" style="border-color:var(--magenta);color:var(--magenta);box-shadow:2px 2px 0 var(--magenta)">[ REINICIAR ]</button>
+  </div>
+</section>
+
+<!-- MARQUEE 2 -->
+<div class="mq rev" aria-hidden="true">
+  <div class="mq-inner">
+    <span class="mq-item">ARQUITETURA DE IA<span class="mq-dot"></span></span>
+    <span class="mq-item">ESTRATÉGIA DE PRODUTO<span class="mq-dot"></span></span>
+    <span class="mq-item">PENSAMENTO SISTÊMICO<span class="mq-dot"></span></span>
+    <span class="mq-item">ÉTICA EM TECH<span class="mq-dot"></span></span>
+    <span class="mq-item">DESIGN DE LINGUAGEM<span class="mq-dot"></span></span>
+    <span class="mq-item">ARQUITETURA DE IA<span class="mq-dot"></span></span>
+    <span class="mq-item">ESTRATÉGIA DE PRODUTO<span class="mq-dot"></span></span>
+    <span class="mq-item">PENSAMENTO SISTÊMICO<span class="mq-dot"></span></span>
+    <span class="mq-item">ÉTICA EM TECH<span class="mq-dot"></span></span>
+    <span class="mq-item">DESIGN DE LINGUAGEM<span class="mq-dot"></span></span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     ★ NEW — INVENTÁRIO DE SKILLS
+═══════════════════════════════════════ -->
+<section id="s_skill">
+  <div class="sec-head rv">
+    <span class="sec-chip" style="background:var(--yellow);color:var(--bg2)">SISTEMA</span>
+    <h2 class="sec-ttl">// INVENTÁRIO DE SKILLS</h2>
+  </div>
+  <div class="skill-inv-wrap rv d1">
+    <p class="skill-inv-hint">[ ARRASTE E REORGANIZE OS MÓDULOS DE CONHECIMENTO ]</p>
+    <div class="skill-grid" id="skill-grid"></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     ★ NEW — CAREER TIMELINE
+═══════════════════════════════════════ -->
+<section id="s_timeline">
+  <div class="sec-head rv">
+    <span class="sec-chip" style="background:var(--magenta)">HISTÓRIA</span>
+    <h2 class="sec-ttl">// TRAJETÓRIA</h2>
+  </div>
+  <div class="timeline" id="timeline-box">
+    
+    <div class="tl-item rv">
+      <div class="tl-dot"><span class="material-symbols-outlined">school</span></div>
+      <div class="tl-content">
+        <p class="tl-year">2022 — PRESENTE</p>
+        <p class="tl-role">SISTEMAS DE INFORMAÇÃO</p>
+        <p class="tl-org">Faculdade — Formação Técnica</p>
+        <p class="tl-desc" data-orig="Base teórica de algoritmos, arquitetura e negócios. Onde código encontra estratégia.">Base teórica de algoritmos, arquitetura e negócios. Onde código encontra estratégia.</p>
+        <div class="tl-tags"><span class="tl-tag">ALGORITMOS</span><span class="tl-tag">BANCO DE DADOS</span><span class="tl-tag">GESTÃO</span></div>
+      </div>
+    </div>
+
+    <div class="tl-item rv d1">
+      <div class="tl-dot"><span class="material-symbols-outlined">map</span></div>
+      <div class="tl-content">
+        <p class="tl-year">2023</p>
+        <p class="tl-role">SISTEMA DE INFORMAÇÃO GEOGRÁFICA</p>
+        <p class="tl-org">SIG — SEIH / Projeto de Gestão Hídrica</p>
+        <p class="tl-desc" data-orig="Primeiro projeto de impacto real — mapear e gerir recursos hídricos com PostGIS e Leaflet.">Primeiro projeto de impacto real — mapear e gerir recursos hídricos com PostGIS e Leaflet.</p>
+        <div class="tl-tags"><span class="tl-tag">GIS</span><span class="tl-tag">POSTGIS</span><span class="tl-tag">LEAFLET</span></div>
+      </div>
+    </div>
+
+    <div class="tl-item rv d2">
+      <div class="tl-dot"><span class="material-symbols-outlined">account_balance</span></div>
+      <div class="tl-content">
+        <p class="tl-year">2023 — 2024</p>
+        <p class="tl-role">ARQUITETO DE SISTEMAS ENTERPRISE</p>
+        <p class="tl-org">DMS Governamental</p>
+        <p class="tl-desc" data-orig="Gestão documental em larga escala com arquitetura de microserviços e auditoria completa.">Gestão documental em larga escala com arquitetura de microserviços e auditoria completa.</p>
+        <div class="tl-tags"><span class="tl-tag">MICROSERVICES</span><span class="tl-tag">ENTERPRISE</span><span class="tl-tag">AUDITORIA</span></div>
+      </div>
+    </div>
+
+    <div class="tl-item rv d3">
+      <div class="tl-dot"><span class="material-symbols-outlined">rocket_launch</span></div>
+      <div class="tl-content">
+        <p class="tl-year">2024 — PRESENTE</p>
+        <p class="tl-role">FOUNDER &amp; TECH LEAD</p>
+        <p class="tl-org">ONLIFE — Startup de Automação de Vendas</p>
+        <p class="tl-desc" data-orig="Do zero ao produto. WhatsApp + Kanban + PostgreSQL. Aprendi que código não serve se não resolve dor.">Do zero ao produto. WhatsApp + Kanban + PostgreSQL. Aprendi que código não serve se não resolve dor.</p>
+        <div class="tl-tags"><span class="tl-tag">SAAS</span><span class="tl-tag">NODE.JS</span><span class="tl-tag">WHATSAPP API</span><span class="tl-tag">STARTUP</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══ S6 — PROJECTS ═══ -->
+<section id="s6">
+    <div class="sec-head rv">
+        <span class="sec-chip" style="background:var(--cyan);color:var(--bg2)">PORTFÓLIO</span>
+        <h2 class="sec-ttl">// PROJETOS REAIS</h2>
+    </div>
+  <div class="proj-grid rv d1" id="proj-grid"></div>
+</section>
+
+<!-- ═══ S7 — DIALOGUE ═══ -->
+<section id="s7">
+  <div class="sec-head rv" style="margin-bottom:36px">
+    <span class="sec-chip" style="background:var(--white);color:var(--bg2)">SYS.COMM</span>
+    <h2 class="sec-ttl">// TERMINAL DE DIÁLOGO</h2>
+  </div>
+  
+  <div class="dlg-box rv d1" id="dlg-box" title="Clique para pular a digitação">
+    <div class="dlg-avatar">
+      <span class="material-symbols-outlined">graphic_eq</span>
+    </div>
+    <div class="dlg-text-wrap">
+      <div class="dlg-text" id="dlg-txt"></div>
+    </div>
+  </div>
+
+  <div class="dlg-choices rv d2">
+    <button class="choice" data-msg="A base importa. Cursar Sistemas de Informação me deu o lastro teórico de algoritmos e arquitetura para entender que tecnologia não sobrevive sem visão de negócios.">/FACULDADE</button>
+    <button class="choice" data-msg="Escovar bits no PostgreSQL é uma arte. A interface pode mentir, mas o banco de dados não. Uma modelagem relacional sólida é a fundação de qualquer sistema.">/POSTGRESQL</button>
+    <button class="choice" data-msg="Sem metas SMART, você só tem desejos. Se a feature não é específica, mensurável e com prazo definido, não é engenharia, é hobby.">/METAS_SMART</button>
+    <button class="choice" data-msg="Construir a Onlife do zero me provou na prática: o código mais elegante do mundo é inútil se o produto não resolve a dor real do cliente.">/ONLIFE</button>
+  </div>
+</section>
+
+<!-- ═══ S8 — BOSS / CONTACT ═══ -->
+<section id="s8">
+<div class="boss-banner rv">
+    <p class="boss-warn" id="boss-warn">⚠ BOSS FINAL ⚠</p>
+    
+    <div class="boss-hp-wrap">
+      <span class="hp-label">HP</span>
+      <div class="hp-bar-bg"><div class="hp-bar-fill" id="boss-hp"></div></div>
+      <span class="hp-val" id="boss-hp-val">999/999</span>
+    </div>
+
+    <h2 class="boss-ttl" id="boss-ttl">Você tem um problema<br>que vale a pena <em>existir?</em></h2>
+    <p class="boss-sub">Não aceito projetos comuns. Aceito problemas genuínos. Se você está construindo algo que importa — derrote o boss abaixo para provar sua resiliência ou pule direto para os contatos.</p>
+
+    <button class="game-btn boss-atk-btn" id="atk-btn" style="margin-top: 32px; font-size: 10px; padding: 16px 32px;">
+      [ ATACAR BOSS ]
+    </button>
+  </div>
+
+  <div class="contact-grid rv d2" id="contact-grid">
+    <a class="cg-btn" href="mailto:lucas@onlife.com"><span class="cg-name">EMAIL</span><span class="cg-arr">↗</span></a>
+    <a class="cg-btn" href="#"><span class="cg-name">LINKEDIN</span><span class="cg-arr">↗</span></a>
+    <a class="cg-btn" href="#"><span class="cg-name">GITHUB</span><span class="cg-arr">↗</span></a>
+    <a class="cg-btn" href="#"><span class="cg-name">CALENDLY</span><span class="cg-arr">↗</span></a>
+  </div>
+</section>
+
+<!-- ═══ FOOTER com EXP bar integrada ═══ -->
+<footer>
+  <div class="footer-exp" id="footer-exp"></div>
+  <div class="footer-inner">
+    <span>© 2026 LUCAS_OS — TODOS OS SISTEMAS OPERANDO</span>
+    <div class="f-exp-wrap">
+      <span class="f-exp-lbl">EXP</span>
+      <div class="f-exp-track"><div class="f-exp-fill" id="f-exp-fill"></div></div>
+      <span class="f-exp-pct" id="f-exp-pct">0%</span>
+    </div>
+    <span class="f-live">DISPONÍVEL PARA O QUE VALE</span>
+    <span class="f-v">v3.0.0 BUILD 20260228</span>
+  </div>
+</footer>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   UTILITIES
+══════════════════════════════════════════════════════════════ */
+const $  = id => document.getElementById(id)
+const $$ = sel => document.querySelectorAll(sel)
+
+/* ══════════════════════════════════════════════════════════════
+   CURSOR + PIXEL TRAIL
+══════════════════════════════════════════════════════════════ */
+const cur = $('cur')
+let mx = innerWidth / 2, my = innerHeight / 2, trailTimer = 0
+const COLORS = ['#39ff6e','#00e5ff','#ffe94d','#ff2d9b']
+
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY
+  cur.style.left = mx + 'px'
+  cur.style.top  = my + 'px'
+  if (Date.now() - trailTimer > 55) { spawnTrail(mx, my); trailTimer = Date.now() }
+})
+
+function spawnTrail(x, y) {
+  const t = document.createElement('div')
+  t.className = 'px-trail'
+  const sz = [3,4,5][Math.random()*3|0]
+  t.style.cssText = `left:${x+(Math.random()-.5)*8}px;top:${y+(Math.random()-.5)*8}px;width:${sz}px;height:${sz}px;background:${COLORS[Math.random()*4|0]};position:fixed;image-rendering:pixelated`
+  document.body.appendChild(t)
+  setTimeout(() => t.remove(), 600)
+}
+
+// Dynamic interaction set — reusable so new elements can be added
+function bindCursor(sel) {
+  $$(sel).forEach(el => {
+    el.addEventListener('mouseenter', () => cur.classList.add('hover-state'))
+    el.addEventListener('mouseleave', () => cur.classList.remove('hover-state'))
+  })
+}
+bindCursor('a,button,.ditem,.bcard,.choice,.hint-chip,.cg-btn,.mem-card,.game-btn,.tl-item')
+
+document.addEventListener('mousedown', () => cur.classList.add('click-state'))
+document.addEventListener('mouseup',   () => cur.classList.remove('click-state'))
+
+// Click burst
+document.addEventListener('click', e => {
+  const b = document.createElement('div')
+  b.className = 'burst'
+  b.style.cssText = `left:${e.clientX}px;top:${e.clientY}px`
+  for (let i = 0; i < 10; i++) {
+    const p = document.createElement('div')
+    p.className = 'burst-px'
+    const ang = (i/10)*Math.PI*2, d = 18+Math.random()*36
+    p.style.setProperty('--bx', Math.cos(ang)*d+'px')
+    p.style.setProperty('--by', Math.sin(ang)*d+'px')
+    p.style.background = COLORS[i%4]
+    b.appendChild(p)
+  }
+  document.body.appendChild(b)
+  setTimeout(() => b.remove(), 600)
+})
+
+/* ══════════════════════════════════════════════════════════════
+   BOOT SEQUENCE
+══════════════════════════════════════════════════════════════ */
+const BOOT_MSGS = [
+  'CARREGANDO MÓDULOS DE ARQUITETURA...',
+  'INICIALIZANDO LIDERANÇA... OK',
+  'CALIBRANDO BANCO DE DADOS... 95%... OK',
+  'CARREGANDO MAPAS GIS... OK',
+  'VERIFICANDO METAS SMART... 100%',
+  'COMPILANDO SISTEMAS...',
+  'SISTEMA PRONTO. BEM-VINDO.',
+]
+let bootPct = 0, bootMsgIdx = 0
+const bfill = $('bfill'), bmsg = $('bmsg'), bootEl = $('boot')
+
+function skipBoot() {
+  bootPct = 100; bfill.style.width = '100%'; bmsg.textContent = 'SISTEMA PRONTO.'
+  setTimeout(() => { bootEl.classList.add('gone'); startStats() }, 300)
+}
+document.addEventListener('keydown', e => { if (!bootEl.classList.contains('gone')) skipBoot() })
+
+const bootInterval = setInterval(() => {
+  bootPct += Math.random()*9+2
+  if (bootPct >= 100) { bootPct = 100; clearInterval(bootInterval) }
+  bfill.style.width = bootPct + '%'
+  const ni = Math.floor((bootPct/100)*BOOT_MSGS.length)
+  if (ni !== bootMsgIdx && ni < BOOT_MSGS.length) { bootMsgIdx = ni; bmsg.textContent = BOOT_MSGS[bootMsgIdx] }
+  if (bootPct >= 100) setTimeout(() => { bootEl.classList.add('gone'); startStats() }, 700)
+}, 120)
+
+/* ══════════════════════════════════════════════════════════════
+   LIVE CLOCK
+══════════════════════════════════════════════════════════════ */
+function tick() {
+  const n=new Date(), p=v=>String(v).padStart(2,'0')
+  $('nav-time').textContent = `${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`
+}
+tick(); setInterval(tick, 1000)
+
+/* ══════════════════════════════════════════════════════════════
+   SCROLL PROGRESS + EXP BAR (footer) + LEVEL TOAST
+══════════════════════════════════════════════════════════════ */
+let lastLvl = 0
+window.addEventListener('scroll', () => {
+  const pct = Math.round(window.scrollY / (document.body.scrollHeight - innerHeight) * 100)
+  $('scroll-prog').style.width = pct + '%'
+  $('f-exp-fill').style.width  = pct + '%'
+  $('f-exp-pct').textContent   = pct + '%'
+  $('footer-exp').style.width  = pct + '%'
+
+  const lvl = Math.floor(pct / 12)
+  if (lvl > lastLvl) { showToast('★ AREA DESBLOQUEADA ★'); lastLvl = lvl }
+})
+
+function showToast(msg) {
+  const t = $('lvl-toast'); t.textContent = msg; t.classList.add('show')
+  setTimeout(() => t.classList.remove('show'), 1800)
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ★ NEW — 3D BADGE TILT LOGIC
+══════════════════════════════════════════════════════════════ */
+const badge = $('id-badge');
+const glare = $('badge-glare');
+
+if(badge) {
+  badge.addEventListener('mousemove', (e) => {
+    // Calcula a posição do rato dentro do cartão
+    const rect = badge.getBoundingClientRect();
+    const x = e.clientX - rect.left; 
+    const y = e.clientY - rect.top;  
+    
+    // Calcula o centro
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    // Rotação máxima de 15 graus com base na distância do centro
+    const rotateX = ((y - centerY) / centerY) * -15; 
+    const rotateY = ((x - centerX) / centerX) * 15;
+
+    badge.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+    
+    // Move o reflexo de luz (glare) para seguir o cursor
+    if(glare) {
+      glare.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,255,255,0.25), transparent 60%)`;
+    }
+  });
+
+  badge.addEventListener('mouseleave', () => {
+    // Reseta a física quando o rato sai
+    badge.style.transform = `rotateX(0deg) rotateY(0deg)`;
+    if(glare) {
+      glare.style.background = `radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1), transparent 60%)`;
+    }
+  });
+  
+  // Ativa o cursor bracket [ ] ao passar o rato no crachá
+  badge.addEventListener('mouseenter', () => cur.classList.add('hover-state'));
+  badge.addEventListener('mouseleave', () => cur.classList.remove('hover-state'));
+}
+
+/* ══════════════════════════════════════════════════════════════
+   STAT BARS
+══════════════════════════════════════════════════════════════ */
+function startStats() {
+  $$('.stat-f').forEach((b,i)=>setTimeout(()=>{b.style.width=b.dataset.v+'%'},200+i*140))
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FLOATING PARTICLES (hero)
+══════════════════════════════════════════════════════════════ */
+const hero=$('s1')
+for(let i=0;i<22;i++){
+  const p=document.createElement('div'); p.className='flt'
+  const sz=[4,6,8][Math.random()*3|0]
+  p.style.cssText=`left:${Math.random()*100}%;width:${sz}px;height:${sz}px;animation-duration:${7+Math.random()*10}s;animation-delay:${Math.random()*8}s;--dx:${(Math.random()-.5)*90}px;background:${COLORS[Math.random()*4|0]}`
+  hero.appendChild(p)
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ★ NEW — ZSH TERMINAL ENGINE
+══════════════════════════════════════════════════════════════ */
+const tIn = $('t-in');
+const tOut = $('t-out');
+const tBody = $('term-body');
+
+const CMD_RESPONSES = {
+  'help': 'Comandos disponíveis: <br>> <span style="color:var(--cyan)">whoami</span> : Mostra minha identidade<br>> <span style="color:var(--cyan)">stack</span> : Lista meu arsenal técnico<br>> <span style="color:var(--cyan)">clear</span> : Limpa o terminal',
+  'whoami': 'LUCAS RODRIGUES<br>Software Architect | Tech Lead | Founder @ Onlife.<br>Especialista em unir gestão de negócios (Kanban/MoSCoW) com engenharia de alta complexidade (PostgreSQL, GIS, Node).',
+  'stack': 'PostgreSQL, PostGIS, Node.js, React, Leaflet, Power BI, Microserviços.',
+  'sudo rm -rf /': 'Permissão negada. Você achou que eu deixaria a root aberta?',
+  'onlife': 'ONLIFE STARTUP INICIADA. [Automação de WhatsApp: OK] [Kanban: OK]. O problema virou solução.',
+};
+
+// Disparador via barra de botões
+function runCmd(cmd) {
+  if(!tIn) return;
+  tIn.value = cmd;
+  tIn.focus();
+  // Simula o enter
+  const ev = new KeyboardEvent('keydown', { key: 'Enter' });
+  tIn.dispatchEvent(ev);
+}
+
+if (tIn) {
+  tIn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const val = tIn.value.trim().toLowerCase();
+      if (!val) return;
+
+      // 1. Imprime o comando que o usuário digitou
+      const echo = document.createElement('div');
+      echo.innerHTML = `<span class="t-pre">root@lucas_os:~$</span> <span style="color:var(--white)">${val}</span>`;
+      tOut.appendChild(echo);
+
+      // 2. Processa a Resposta
+      const res = document.createElement('div');
+      
+      if (val === 'clear') {
+        tOut.innerHTML = '';
+      } 
+      else if (val === 'sudo cast hellfire' || val === 'vahus') {
+        // ★ EASTER EGG: A Marca do Feiticeiro (Muda as variáveis globais de cor)
+        res.className = 't-err';
+        res.innerHTML = "LORE DESBLOQUEADA: Vahus convocado. Marca de fogo do inferno ativada na sua máquina.";
+        document.documentElement.style.setProperty('--green', '#ff4444');
+        document.documentElement.style.setProperty('--cyan', '#ff7b00');
+        document.documentElement.style.setProperty('--bg', '#1a0505');
+        setTimeout(() => alert("Sistemas comprometidos pela marca de Vahus."), 500);
+      }
+      else if (CMD_RESPONSES[val]) {
+        res.className = 't-res';
+        res.innerHTML = CMD_RESPONSES[val];
+      } 
+      else {
+        res.className = 't-err';
+        res.innerHTML = `bash: ${val}: comando não encontrado. Digite 'help'.`;
+      }
+
+      if (val !== 'clear') tOut.appendChild(res);
+
+      // 3. Limpa o input e joga o scroll lá pra baixo
+      tIn.value = '';
+      tBody.scrollTop = tBody.scrollHeight;
+    }
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SNAKE GAME  — LARGER & FIXED RESET
+══════════════════════════════════════════════════════════════ */
+const sc   = $('snake-canvas')
+const sctx = sc.getContext('2d')
+
+// ★ NEW: Aumentamos a resolução física do jogo para 320x320
+sc.width = 320;
+sc.height = 320;
+
+const CELL = 16
+const COLS  = 20  // Aumentado de 16 para 20
+const ROWS  = 20  // Aumentado de 16 para 20
+const SPEED = 120 // Um pouquinho mais rápido para compensar o mapa maior
+
+const FOOD_COLORS = ['#ffe94d', '#00e5ff', '#ff2d9b', '#39ff6e']
+let snake, snakeDir, snakeNext, food, foodColor
+// ★ NEW: Adicionado o estado 'snakeDead' para controle real de Game Over
+let snakeRunning=false, snakePaused=false, snakeDead=false, snakeScore=0, snakeHi=0
+let snakeLoop=null, foodIdx2=0
+
+function snakeInit() {
+  // Reseta pro tamanho 3 e no centro do novo mapa
+  snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}]
+  snakeDir  = {x:1,y:0}
+  snakeNext = {x:1,y:0}
+  snakeScore = 0; 
+  snakeRunning=false; 
+  snakePaused=false; 
+  snakeDead=false; 
+  foodIdx2=0;
+  
+  $('score').textContent    = '0'
+  $('g-status').textContent = 'PRESSIONE ENTER'
+  snakePlaceFood()
+  snakeDraw()
+}
+
+function snakePlaceFood() {
+  let candidate
+  do {
+    candidate = { x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS) }
+  } while (snake.some(s=>s.x===candidate.x&&s.y===candidate.y))
+  food = candidate
+  foodColor = FOOD_COLORS[foodIdx2 % FOOD_COLORS.length]
+}
+
+function snakeDraw() {
+  sctx.fillStyle = '#020209'
+  sctx.fillRect(0, 0, sc.width, sc.height)
+
+  sctx.fillStyle = 'rgba(57,255,110,.04)'
+  for(let x=0;x<COLS;x++) for(let y=0;y<ROWS;y++) sctx.fillRect(x*CELL,y*CELL,1,1)
+
+  sctx.fillStyle = foodColor;
+  sctx.shadowColor = foodColor;
+  sctx.shadowBlur = 12;
+  sctx.fillRect(food.x*CELL+4, food.y*CELL+4, CELL-8, CELL-8);
+  sctx.shadowBlur = 0;
+
+  snake.forEach((seg,i) => {
+    const isHead = i===0
+    sctx.fillStyle = isHead ? '#39ff6e' : (i%2===0 ? '#00e5ff' : '#0097a7')
+    sctx.fillRect(seg.x*CELL+1, seg.y*CELL+1, CELL-2, CELL-2)
+    if(isHead){
+      sctx.fillStyle='#020209'
+      sctx.fillRect(seg.x*CELL+3,  seg.y*CELL+3,  3, 3)
+      sctx.fillRect(seg.x*CELL+10, seg.y*CELL+3,  3, 3)
+    }
+  })
+
+  // Telas do Sistema centralizadas matematicamente (sc.width / 2)
+  if(!snakeRunning && !snakePaused){
+    sctx.fillStyle='rgba(2,2,9,.85)'
+    sctx.fillRect(0, sc.height/2 - 40, sc.width, 80)
+    sctx.fillStyle='#39ff6e'
+    sctx.font='10px "Press Start 2P"'
+    sctx.textAlign='center'
+    
+    if(snakeDead){
+      sctx.fillStyle='#ff4444'
+      sctx.fillText('GAME OVER', sc.width/2, sc.height/2 - 5)
+      sctx.fillStyle='#ffe94d'
+      sctx.fillText('SCORE: '+snakeScore, sc.width/2, sc.height/2 + 15)
+      sctx.fillStyle='rgba(57,255,110,.6)'
+      sctx.font='7px "Press Start 2P"'
+      sctx.fillText('ENTER P/ REINICIAR', sc.width/2, sc.height/2 + 30)
+    } else {
+      sctx.fillText('READY?', sc.width/2, sc.height/2 - 5)
+      sctx.fillStyle='rgba(57,255,110,.6)'
+      sctx.font='7px "Press Start 2P"'
+      sctx.fillText('ENTER P/ INICIAR', sc.width/2, sc.height/2 + 15)
+    }
+  }
+
+  if(snakePaused){
+    sctx.fillStyle='rgba(2,2,9,.8)'
+    sctx.fillRect(0, sc.height/2 - 25, sc.width, 50)
+    sctx.fillStyle='#ffe94d'
+    sctx.font='10px "Press Start 2P"'
+    sctx.textAlign='center'
+    sctx.fillText('PAUSADO', sc.width/2, sc.height/2 + 5)
+  }
+}
+
+function snakeStep() {
+  snakeDir = {...snakeNext}
+  const head = {
+    x: (snake[0].x + snakeDir.x + COLS) % COLS,
+    y: (snake[0].y + snakeDir.y + ROWS) % ROWS,
+  }
+  
+  if(snake.slice(1).some(s=>s.x===head.x&&s.y===head.y)){
+    snakeRunning=false
+    snakeDead=true // ★ FIX: Marca a cobra como oficialmente morta
+    if(snakeScore>snakeHi){ snakeHi=snakeScore; $('hi-score').textContent=snakeHi }
+    $('g-status').textContent='GAME OVER'
+    clearInterval(snakeLoop)
+    snakeDraw()
+    return
+  }
+  
+  snake.unshift(head)
+  
+  if(head.x===food.x && head.y===food.y){
+    snakeScore+=10
+    $('score').textContent=snakeScore
+    foodIdx2++
+    if(snakeScore>snakeHi){ snakeHi=snakeScore; $('hi-score').textContent=snakeHi }
+    
+    const canvasRect = sc.getBoundingClientRect()
+    // Calcula a escala pra partícula aparecer no lugar certo caso a tela do celular esprema o canvas
+    const scaleX = canvasRect.width / sc.width
+    const scaleY = canvasRect.height / sc.height
+    showScorePop(canvasRect.left+(head.x*CELL*scaleX), canvasRect.top+(head.y*CELL*scaleY), '+10')
+    
+    snakePlaceFood()
+  } else {
+    snake.pop()
+  }
+  snakeDraw()
+}
+
+function showScorePop(x, y, txt) {
+  const el = document.createElement('div')
+  el.className = 'score-pop'
+  el.textContent = txt
+  el.style.cssText = `left:${x}px;top:${y}px`
+  document.body.appendChild(el)
+  setTimeout(()=>el.remove(), 750)
+}
+
+function snakeAction() {
+  // ★ FIX DO RESET: Se estava morta, limpa o array inteiro antes de rodar
+  if(snakeDead) {
+    snakeInit() 
+    snakeRunning=true
+    snakeLoop=setInterval(snakeStep, SPEED)
+    $('g-status').textContent='RUNNING'
+    return
+  }
+  
+  if(!snakeRunning){
+    snakeRunning=true; snakePaused=false
+    clearInterval(snakeLoop)
+    snakeLoop=setInterval(snakeStep, SPEED)
+    $('g-status').textContent='RUNNING'
+  } else {
+    snakePaused=!snakePaused
+    if(snakePaused){ clearInterval(snakeLoop); $('g-status').textContent='PAUSADO' }
+    else { snakeLoop=setInterval(snakeStep,SPEED); $('g-status').textContent='RUNNING' }
+  }
+}
+
+// ★ FIX: Isola os controles da cobrinha
+document.addEventListener('keydown', e => {
+  // 1. Protege o Terminal: se estiver digitando em um input, ignora o jogo
+  if (e.target.tagName && e.target.tagName.toLowerCase() === 'input') return;
+
+  const DIRS={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},
+              w:{x:0,y:-1},s:{x:0,y:1},a:{x:-1,y:0},d:{x:1,y:0}};
+  const nd = DIRS[e.key];
+  
+  if(nd){
+    // 2. As setas SÓ movem a cobra e SÓ bloqueiam o scroll SE o jogo já estiver rodando
+    if(snakeRunning) {
+      if(!(nd.x===-snakeDir.x&&nd.y===-snakeDir.y)) snakeNext=nd;
+      e.preventDefault();
+    }
+  }
+  
+  // 3. O Enter e o R só funcionam se você já estiver jogando (inicie a 1ª vez pelo botão)
+  if(e.key==='Enter') {
+     if (snakeRunning || snakePaused || snakeDead) {
+        snakeAction();
+        e.preventDefault();
+     }
+  }
+  if((e.key==='r'||e.key==='R') && (snakeRunning || snakeDead || snakePaused)) { 
+     snakeInit(); snakeDraw(); 
+  }
+});
+
+snakeInit()
+
+/* ══════════════════════════════════════════════════════════════
+   MEMORY GAME
+══════════════════════════════════════════════════════════════ */
+const MEM_CARDS=[
+  {icon:'<span class="material-symbols-outlined">lightbulb</span>',word:'IDEIA'},
+  {icon:'<span class="material-symbols-outlined">help</span>',word:'PERGUNTA'},
+  {icon:'<span class="material-symbols-outlined">memory</span>',word:'MENTE'},
+  {icon:'<span class="material-symbols-outlined">settings</span>',word:'SISTEMA'},
+  {icon:'<span class="material-symbols-outlined">explore</span>',word:'FUTURO'},
+  {icon:'<span class="material-symbols-outlined">smart_toy</span>',word:'IA'},
+  {icon:'<span class="material-symbols-outlined">local_fire_department</span>',word:'PAIXÃO'},
+  {icon:'<span class="material-symbols-outlined">center_focus_strong</span>',word:'FOCO'},
+];
+
+let memFlipped=[],memMatched=0,memMoves=0,memLocked=false
+function initMemory(){
+  memFlipped=[];memMatched=0;memMoves=0;memLocked=false
+  $('mem-moves').textContent='0'; $('mem-pairs').textContent='0/8'; $('mem-msg').textContent=''
+  const pairs=[...MEM_CARDS,...MEM_CARDS].sort(()=>Math.random()-.5)
+  const grid=$('mem-grid'); grid.innerHTML=''
+  pairs.forEach((c,i)=>{
+    const el=document.createElement('div'); el.className='mem-card'
+    el.dataset.icon=c.icon; el.dataset.word=c.word
+    el.innerHTML=`<div class="mem-front"></div><div class="mem-back"><span class="mem-icon">${c.icon}</span><span class="mem-word">${c.word}</span></div>`
+    el.addEventListener('click',()=>flipCard(el))
+    grid.appendChild(el)
+  })
+  // Re-bind cursor for new elements
+  bindCursor('.mem-card')
+}
+function flipCard(el){
+  if(memLocked||el.classList.contains('flipped')||el.classList.contains('matched'))return
+  el.classList.add('flipped'); memFlipped.push(el)
+  if(memFlipped.length===2){
+    memLocked=true; memMoves++; $('mem-moves').textContent=memMoves
+    if(memFlipped[0].dataset.icon===memFlipped[1].dataset.icon){
+      memFlipped.forEach(c=>c.classList.add('matched'))
+      memMatched++; $('mem-pairs').textContent=memMatched+'/8'
+      memFlipped=[]; memLocked=false
+      if(memMatched===8) $('mem-msg').textContent='🎉 VOCÊ VENCEU! MINHA MENTE É SUA! 🎉'
+    } else {
+      setTimeout(()=>{memFlipped.forEach(c=>c.classList.remove('flipped'));memFlipped=[];memLocked=false},900)
+    }
+  }
+}
+initMemory()
+
+/* ══════════════════════════════════════════════════════════════
+   ★ INVENTORY DRAG & DROP (SKILLS)
+══════════════════════════════════════════════════════════════ */
+const INV_SKILLS = [
+  {name:'PostgreSQL', cat:'DADOS',  lv:95, ico:'database'},
+  {name:'Node.js',    cat:'BACKEND',lv:90, ico:'javascript'},
+  {name:'React',      cat:'FRONTEND',lv:85, ico:'code'},
+  {name:'PostGIS',    cat:'DADOS',  lv:88, ico:'public'},
+  {name:'Leaflet',    cat:'GIS',    lv:80, ico:'map'},
+  {name:'Power BI',   cat:'BI',     lv:88, ico:'bar_chart'},
+  {name:'Redis',      cat:'INFRA',  lv:78, ico:'memory'},
+  {name:'Docker',     cat:'INFRA',  lv:75, ico:'view_in_ar'},
+  {name:'Microserv.', cat:'INFRA',  lv:84, ico:'dns'},
+  {name:'Kanban',     cat:'GESTÃO', lv:92, ico:'view_kanban'},
+  {name:'MoSCoW',     cat:'GESTÃO', lv:90, ico:'sort'},
+  {name:'UI/UX',      cat:'FRONTEND',lv:90, ico:'brush'}
+];
+
+const TOTAL_SLOTS = 18; // Cria 18 slots (alguns ficarão vazios para o usuário brincar)
+const sGrid = $('skill-grid');
+let draggedGem = null;
+let sourceSlot = null;
+
+if(sGrid) {
+  // 1. Renderiza os Slots e as Gemas
+  for(let i = 0; i < TOTAL_SLOTS; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'skill-slot';
+    
+    // Se houver uma skill neste índice, cria a "Gema"
+    if(INV_SKILLS[i]) {
+      const s = INV_SKILLS[i];
+      const gem = document.createElement('div');
+      gem.className = 'skill-gem';
+      gem.draggable = true;
+      gem.dataset.cat = s.cat;
+      gem.innerHTML = `
+        <span class="sg-lv">LV${s.lv}</span>
+        <span class="material-symbols-outlined sg-ico">${s.ico}</span>
+        <span class="sg-name">${s.name}</span>
+      `;
+      
+      // Eventos de Drag da Gema
+      gem.addEventListener('dragstart', function(e) {
+        draggedGem = this;
+        sourceSlot = this.parentElement;
+        setTimeout(() => this.classList.add('dragging'), 0);
+        // Usa o cursor do sistema em vez do fantasma feio do navegador se possível
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      
+      gem.addEventListener('dragend', function() {
+        this.classList.remove('dragging');
+        draggedGem = null;
+        sourceSlot = null;
+      });
+      
+      slot.appendChild(gem);
+    }
+    
+    // Eventos de Drop do Slot
+    slot.addEventListener('dragover', e => {
+      e.preventDefault(); // Necessário para permitir o drop
+      if(slot !== sourceSlot) slot.classList.add('drag-over');
+    });
+    
+    slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
+    
+    slot.addEventListener('drop', function(e) {
+      e.preventDefault();
+      this.classList.remove('drag-over');
+      
+      if(!draggedGem || this === sourceSlot) return;
+
+      const existingGem = this.querySelector('.skill-gem');
+      
+      // Lógica de Swap (Se tiver item, troca. Se não, só move)
+      if(existingGem) {
+        sourceSlot.appendChild(existingGem);
+        this.appendChild(draggedGem);
+      } else {
+        this.appendChild(draggedGem);
+      }
+
+      // Dispara o burst de partículas do seu OS para dar a sensação tátil de encaixe!
+      const rect = this.getBoundingClientRect();
+      spawnBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    });
+    
+    sGrid.appendChild(slot);
+  }
+}
+
+// Helper para disparar as partículas do clique de forma programática no drop
+function spawnBurst(x, y) {
+  const b = document.createElement('div'); b.className = 'burst';
+  b.style.cssText = `left:${x}px;top:${y}px`;
+  for(let i=0; i<8; i++){
+    const p = document.createElement('div'); p.className = 'burst-px';
+    const ang = (i/8)*Math.PI*2, d = 15+Math.random()*20;
+    p.style.setProperty('--bx', Math.cos(ang)*d+'px');
+    p.style.setProperty('--by', Math.sin(ang)*d+'px');
+    p.style.background = '#00e5ff';
+    b.appendChild(p);
+  }
+  document.body.appendChild(b);
+  setTimeout(() => b.remove(), 600);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PROJECT MODAL & GRID RENDER
+══════════════════════════════════════════════════════════════ */
+const PROJECTS = [
+  { ico:'<span class="material-symbols-outlined">rocket_launch</span>', name:'ONLIFE', img:'', 
+    desc:'Plataforma de automação de vendas via WhatsApp com Kanban integrado para lojistas. Stack: Node.js, PostgreSQL, WhatsApp API.', 
+    tags:['SAAS','NODE.JS','POSTGRESQL','WHATSAPP API'] },
+  { ico:'<span class="material-symbols-outlined">map</span>', name:'SIG — SEIH', img:'', 
+    desc:'Sistema de Informação Geográfica para gestão hídrica. Stack: Leaflet.js, PostGIS, GeoJSON.', 
+    tags:['GIS','POSTGIS','LEAFLET'] },
+  { ico:'<span class="material-symbols-outlined">dns</span>', name:'DMS GOVERNAMENTAL', img:'', 
+    desc:'Sistema de Gestão Documental de alta escalabilidade e auditoria. Stack: Microservices, PostgreSQL.', 
+    tags:['ENTERPRISE','MICROSERVICES','POSTGRESQL'] },
+  { ico:'<span class="material-symbols-outlined">bar_chart</span>', name:'INTELLIGENCE HUB', img:'', 
+    desc:'Plataforma central de BI com ETL automatizado e modelagem dimensional. Stack: Power BI, DAX, SQL.', 
+    tags:['BI','POWER BI','SQL','DAX'] },
+  { ico:'<span class="material-symbols-outlined">directions_car</span>', name:'URBAN MOBILITY API', img:'', 
+    desc:'API RESTful geoespacial processando 100k+ requisições/dia. Stack: FastAPI, Redis, PostGIS.', 
+    tags:['API','REDIS','FASTAPI','POSTGIS'] },
+];
+
+const projGrid = $('proj-grid');
+if(projGrid) {
+  PROJECTS.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'proj-card rv d1 on'; 
+    card.tabIndex = 0;
+    card.innerHTML = `
+      <div class="pc-ico">${p.ico}</div>
+      <div class="pc-name">${p.name}</div>
+      <div class="pc-tags">${p.tags.slice(0,3).map(t => `<span class="pc-tag">${t}</span>`).join('')}</div>
+    `;
+    card.addEventListener('click', () => openModal(i));
+    card.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' ') openModal(i) });
+    projGrid.appendChild(card);
+  });
+  
+  setTimeout(() => { bindCursor('.proj-card, .modal-close'); }, 100);
+}
+
+function openModal(i){
+  const p = PROJECTS[i];
+  
+  // ★ A CORREÇÃO ESTÁ AQUI: innerHTML em vez de textContent
+  $('m-icon').innerHTML = p.ico; 
+  
+  $('m-name').textContent = p.name;
+  $('m-desc').textContent = p.desc;
+  $('m-tags').innerHTML = p.tags.map(t => `<span class="modal-tag">${t}</span>`).join('');
+  
+  const imgWrap = $('m-img-wrap');
+  if(p.img && p.img.trim() !== '') {
+    imgWrap.innerHTML = `<img src="${p.img}" alt="${p.name} Screenshot">`;
+  } else {
+    imgWrap.innerHTML = ``; 
+  }
+
+  $('item-modal').classList.add('open');
+}
+
+function closeModal(){
+  $('item-modal').classList.remove('open');
+}
+
+$('item-modal').addEventListener('click', e => { if(e.target === $('item-modal')) closeModal() });
+
+/* ══════════════════════════════════════════════════════════════
+   S7 - DIALOGUE COMM LINK (HIGH SPEED & SKIP)
+══════════════════════════════════════════════════════════════ */
+const dlgTxt = $('dlg-txt');
+const dlgBox = $('dlg-box');
+let dlgTimer = null;
+let isTyping = false;
+let currentFullText = '';
+
+function typeDialogue(txt) {
+  if(dlgTimer) clearTimeout(dlgTimer);
+  currentFullText = txt;
+  dlgTxt.innerHTML = '';
+  let i = 0;
+  isTyping = true;
+  
+  function next() {
+    if(i < txt.length) {
+      // Manipulação direta de string é exponencialmente mais rápida que criar spans
+      dlgTxt.textContent = txt.substring(0, i + 1);
+      i++;
+      // ★ VELOCIDADE TURBINADA: 8ms (antes era 20)
+      dlgTimer = setTimeout(next, 8); 
+    } else {
+      finishTyping();
+    }
+  }
+  next();
+}
+
+function finishTyping() {
+  if(dlgTimer) clearTimeout(dlgTimer);
+  isTyping = false;
+  dlgTxt.textContent = currentFullText;
+  const cur2 = document.createElement('span');
+  cur2.className = 'dlg-cursor'; 
+  dlgTxt.appendChild(cur2);
+}
+
+// ★ NEW: UX Feature - Pular a digitação se o usuário clicar na caixa
+if(dlgBox) {
+  dlgBox.addEventListener('click', () => {
+    if(isTyping) finishTyping();
+  });
+  bindCursor('#dlg-box'); // Ativa o bracket [ ] no mouse ao passar na caixa
+}
+
+typeDialogue('▶ Conexão estabelecida. Selecione um diretório de dados abaixo para extrair informações do sistema.');
+
+$$('.choice').forEach(b => {
+  b.addEventListener('click', () => {
+    $$('.choice').forEach(x => x.classList.remove('sel')); 
+    b.classList.add('sel');
+    typeDialogue('▶ ' + b.dataset.msg);
+  });
+});
+
+/* ══════════════════════════════════════════════════════════════
+   ★ NEW — BOSS FIGHT MECHANIC (S8)
+══════════════════════════════════════════════════════════════ */
+let bossMaxHP = 999;
+let bossHP = bossMaxHP;
+let bossDead = false;
+
+const hpFill = $('boss-hp');
+const hpVal = $('boss-hp-val');
+const s8 = $('s8');
+const bTtl = $('boss-ttl');
+const bWarn = $('boss-warn');
+const atkBtn = $('atk-btn');
+
+function spawnDamage(x, y, dmg) {
+  const el = document.createElement('div');
+  el.className = 'dmg-pop';
+  el.textContent = '-' + dmg;
+  el.style.setProperty('--rot', (Math.random() - 0.5) * 40);
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 700);
+}
+
+function takeDamage(amount, x, y) {
+  if (bossDead) return;
+  
+  bossHP -= amount;
+  if (bossHP <= 0) bossHP = 0;
+  
+  hpFill.style.width = ((bossHP / bossMaxHP) * 100) + '%';
+  hpVal.textContent = Math.ceil(bossHP) + '/' + bossMaxHP;
+  
+  s8.classList.remove('boss-shake');
+  void s8.offsetWidth; 
+  s8.classList.add('boss-shake');
+  
+  spawnDamage(x, y, amount);
+
+  if (bossHP <= 0) {
+    bossDead = true;
+    s8.classList.add('boss-dead');
+    bWarn.textContent = '★ BOSS DERROTADO ★';
+    bTtl.innerHTML = 'CONEXÃO<br><em>ESTABELECIDA.</em>';
+    showToast('XP +999 // CONTATOS DESBLOQUEADOS');
+  }
+}
+
+if(atkBtn) {
+  atkBtn.addEventListener('click', (e) => {
+    if(bossDead) return;
+    // Dano aleatório entre 80 e 120 (Mata o boss em ~10 cliques)
+    const dmg = Math.floor(Math.random() * 41) + 80;
+    
+    // Calcula posição do mouse ou centraliza no botão se for via teclado
+    const x = e.clientX || (atkBtn.getBoundingClientRect().left + atkBtn.offsetWidth / 2);
+    const y = e.clientY || atkBtn.getBoundingClientRect().top;
+    
+    takeDamage(dmg, x, y);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ★ NEW — TIMELINE LOGIC (ENERGY SCROLL & GLITCH TEXT)
+══════════════════════════════════════════════════════════════ */
+const tlBox = $('timeline-box');
+const tlItems = $$('.tl-item');
+const glitchChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*<>{}[]';
+
+// 1. Decodificação de Logs (Glitch no Hover)
+tlItems.forEach(item => {
+  const contentBox = item.querySelector('.tl-content');
+  const descEl = item.querySelector('.tl-desc');
+  const origText = descEl.getAttribute('data-orig');
+
+  contentBox.addEventListener('mouseenter', () => {
+    let iter = 0;
+    clearInterval(descEl.glitchInt);
+    
+    // Toca um som muito sutil de rádio se você quiser depois, mas o visual já basta
+    descEl.glitchInt = setInterval(() => {
+      descEl.textContent = origText.split('').map((char, i) => {
+        if(char === ' ') return ' '; // Mantém espaços limpos
+        if(i < iter) return char;
+        return glitchChars[Math.floor(Math.random() * glitchChars.length)];
+      }).join('');
+      
+      if(iter >= origText.length) clearInterval(descEl.glitchInt);
+      iter += origText.length / 12; // Velocidade da decodificação
+    }, 30);
+  });
+});
+
+// 2. Fio de Energia (Scroll Tracker)
+window.addEventListener('scroll', () => {
+  if(!tlBox) return;
+  
+  const rect = tlBox.getBoundingClientRect();
+  const winH = window.innerHeight;
+  const triggerPoint = winH * 0.6; // Linha de energia acompanha os 60% da tela
+  
+  // Calcula quanto do box já passou do trigger
+  let prog = (triggerPoint - rect.top) / rect.height;
+  prog = Math.max(0, Math.min(1, prog)); // Trava entre 0 e 1 (0% e 100%)
+  
+  // Injeta no CSS
+  tlBox.style.setProperty('--tl-prog', prog);
+
+  // Acende o Nó (Ícone) se a energia passou por ele
+  tlItems.forEach(item => {
+    const iRect = item.getBoundingClientRect();
+    if(iRect.top + 25 < triggerPoint) {
+      item.classList.add('energized');
+    } else {
+      item.classList.remove('energized');
+    }
+  });
+});
+
+/* ══════════════════════════════════════════════════════════════
+   SCROLL REVEAL
+══════════════════════════════════════════════════════════════ */
+const io=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('on')})
+},{threshold:.08,rootMargin:'0px 0px -40px 0px'})
+$$('.rv').forEach(el=>io.observe(el))
+
+const dIO=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      $$('.ditem').forEach((el,i)=>setTimeout(()=>el.classList.add('on'),i*90))
+      dIO.disconnect()
+    }
+  })
+},{threshold:.1})
+const fi=document.querySelector('.ditem'); if(fi)dIO.observe(fi)
+
+/* ══════════════════════════════════════════════════════════════
+   KONAMI CODE → EASTER EGG (BULLETPROOF SLIDING WINDOW)
+══════════════════════════════════════════════════════════════ */
+let kBuffer = "";
+
+document.addEventListener('keydown', (e) => {
+  // Mapeia tanto as setas convencionais quanto o W A S D para os gamers
+  const keyMap = {
+    'arrowup': 'U', 'w': 'U',
+    'arrowdown': 'D', 's': 'D',
+    'arrowleft': 'L', 'a': 'L',
+    'arrowright': 'R', 'd': 'R',
+    'b': 'B', 'a': 'A'
+  };
+
+  // Se a tecla for mapeada, guarda a letra. Se for lixo (outra tecla), guarda 'X'
+  const mapped = keyMap[e.key.toLowerCase()];
+  kBuffer += mapped || 'X';
+  
+  // Mantém a memória curta para não vazar RAM (20 caracteres é suficiente)
+  if (kBuffer.length > 20) {
+      kBuffer = kBuffer.slice(-20);
+  }
+
+  // Verifica se a sequência exata U-U-D-D-L-R-L-R-B-A está contida na string
+  if (kBuffer.includes("UUDDLRLRBA")) {
+    const egg = $('egg');
+    if(egg) egg.classList.add('show');
+    
+    // Dispara a explosão de partículas no centro da tela
+    if(typeof spawnBurst === 'function') {
+        spawnBurst(window.innerWidth / 2, window.innerHeight / 2);
+    }
+    
+    // Reseta o buffer para o usuário poder brincar de novo
+    kBuffer = "";
+  }
+});
+
+/* ══════════════════════════════════════════════════════════════
+   ★ IDE TABS LOGIC
+══════════════════════════════════════════════════════════════ */
+function switchIdeTab(index) {
+  $$('.ide-tab').forEach((tab, i) => {
+    tab.classList.toggle('active', i === index - 1);
+  });
+  $$('.code-pane').forEach((pane, i) => {
+    pane.classList.toggle('active', i === index - 1);
+  });
+}
+
+</script>
+</body>
+</html>
