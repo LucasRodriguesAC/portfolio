@@ -58,4 +58,4 @@ A interface funciona como um terminal de acesso a arquiteturas reais já em prod
 ---
 
 >_"Execute o sistema. Explore o código. Derrote o boss."_  
-> **[ ACESSAR LUCAS_OS ](https://seu-link-aqui.com)**
+> **[ ACESSAR LUCAS_OS ]()**
